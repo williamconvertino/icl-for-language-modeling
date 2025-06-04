@@ -1,0 +1,12 @@
+setuptools==66.1.1
+torch==2.7.0
+pytorch-lightning==2.2.5
+tensorboard==2.15.2
+torchtune==0.6.1
+torchao==0.11.0
+tqdm==4.67.1
+datasets==3.6.0
+transformers==4.52.4
+tiktoken==0.9.0
+python-dotenv==1.1.0
+openai==1.84.0
