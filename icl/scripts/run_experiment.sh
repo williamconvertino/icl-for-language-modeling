@@ -1,7 +1,7 @@
 # Lightning Settings
-CUDA_VISIBLE_DEVICES=1,2,3 \
+# CUDA_VISIBLE_DEVICES=1,2,3 \
 OMP_NUM_THREADS=16 \
-torchrun --nproc_per_node=3 \
+torchrun --nproc_per_node=1 \
 train.py \
---strategy fsdp \
+--strategy auto \
 "$@"
