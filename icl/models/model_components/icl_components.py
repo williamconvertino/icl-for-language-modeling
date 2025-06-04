@@ -1,0 +1,103 @@
+import torch
+import math
+import torch.nn as nn
+import torch.nn.functional as F
+from torchtune.modules import RotaryPositionalEmbeddings
+from .transformer_components import MLP
+
+class ICLAttention(nn.Module):
+    def __init__(self, config, base_icl_attn=None):
+        super().__init__()
+        
+        self.config = config
+        
+        self.W_q = nn.Linear(config.d_embed, config.n_heads * config.d_embed, bias=False)
+        self.W_k = nn.Linear(config.d_embed, config.n_heads * config.d_embed, bias=False)
+        self.W_o = nn.Linear(config.n_heads * config.d_embed, config.d_embed, bias=False)
+        
+        if config.use_wv_for_icl:
+            self.W_v = nn.Linear(config.d_embed, config.n_heads * config.d_embed, bias=False)    
+        
+        if config.share_heads_for_icl and base_icl_attn is not None:
+            self.W_q.weight = base_icl_attn.W_q.weight
+            self.W_k.weight = base_icl_attn.W_k.weight
+            if config.use_wv_for_icl:
+                self.W_v.weight = base_icl_attn.W_v.weight
+        
+        if config.share_projection_for_icl:
+            self.W_o.weight = base_icl_attn.W_o.weight
+        
+        self.attn_scale = 1 / math.sqrt(config.d_embed)
+        
+        if config.use_rotary_for_icl:
+            self.rotary_embeddings = RotaryPositionalEmbeddings(config.d_embed)
+        
+        self.drop_attn = nn.Dropout(0.1)
+        self.drop_resid = nn.Dropout(0.1)
+        
+    def forward(self, q, k, v):
+        
+        B, S, E = q.shape # Note that S here really represents S+1, as we add an additional global context token
+        
+        q = self.W_q(q).view(B, S, self.config.n_heads, self.config.d_embed).transpose(1, 2)
+        k = self.W_k(k).view(B, S, self.config.n_heads, self.config.d_embed).transpose(1, 2)
+        
+        if self.config.use_wv_for_icl:
+            v = self.W_v(v).view(B, S, self.config.n_heads, self.config.d_embed).transpose(1, 2)
+        else:
+            v = v.unsqueeze(2).expand(B, S, self.config.n_heads, E).transpose(1, 2)
+            
+        if self.config.use_rotary_for_icl:
+            q = self.rotary_embeddings(q)
+            k = self.rotary_embeddings(k)
+        
+        causal_mask = torch.triu(torch.ones(S, S), diagonal=0).bool().to(q.device) # (S, S)
+        
+        attn_scores = torch.matmul(q, k.transpose(-2, -1)) * self.attn_scale
+        attn_scores = attn_scores.masked_fill(causal_mask, float('-inf')) # (B, S, S)
+        
+        attn_probs = F.softmax(attn_scores, dim=-1)
+        attn_probs = self.drop_attn(attn_probs)
+        
+        attn_output = torch.matmul(attn_probs, v)
+        attn_output = attn_output.transpose(1, 2).contiguous().view(B, S, self.config.d_embed * self.config.n_heads)
+        attn_output = self.W_o(attn_output)
+        attn_output = self.drop_resid(attn_output)
+        
+        return attn_output
+
+class ICLBlock(nn.Module):
+    def __init__(self, config, embedding, base_icl_attn=None):
+        super().__init__()
+        
+        self.config = config
+        self.embedding = embedding
+        
+        self.attn = ICLAttention(config, base_icl_attn)
+        
+        if self.config.use_mlp_for_icl:
+            self.mlp_expectation = MLP(config)
+        
+    def calculate_embedding_expectation(self, functional_update): 
+        with torch.no_grad():
+            embedding_matrix = self.embedding.weight # (V, E)
+            weighted_expectation = F.softmax(functional_update @ embedding_matrix.transpose(0, 1), dim=-1) @ embedding_matrix # (B, S + 1, E)
+            return weighted_expectation.detach()
+            
+    def forward(self, covariates, targets, functional_update):
+        
+        if self.config.use_mlp_icl:
+            v = targets + self.mlp_expectation(functional_update)
+        else:
+            v = targets - self.calculate_embedding_expectation(functional_update) # (B, S + 1, E)
+            
+        q = k = covariates # (B, S + 1, E)
+
+        delta_f = self.attn(q, k, v) # (B, S + 1, E)
+
+        functional_update = functional_update + delta_f # (B, S + 1, E)
+        
+        if self.config.update_covariates:
+            covariates = covariates + functional_update
+
+        return covariates, targets, functional_update
