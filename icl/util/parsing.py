@@ -18,6 +18,7 @@ def parse_experiment_args():
     # Training
     parser.add_argument("--max_epochs", type=int, default=10)
     parser.add_argument("--lr", type=float, default=1e-4)
+    parser.add_argument("--val_check_interval", type=float, default=0.2)
     parser.add_argument("--strategy", type=str, default="fsdp") # ddp for small models, fsdp for large
     parser.add_argument("--batch_size", type=int, default=16)
     # parser.add_argument("--devices", type=int, default=None) # Not useable when doing torchrun

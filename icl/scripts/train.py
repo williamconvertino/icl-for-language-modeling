@@ -14,6 +14,7 @@ def main():
 
     lr=args.lr
     strategy=args.strategy
+    val_check_interval=args.val_check_interval
     
     precision = "16-mixed"
     accelerator="gpu"
@@ -62,7 +63,7 @@ def main():
         callbacks=callbacks,
         logger=logger,
         log_every_n_steps=10,
-        val_check_interval=0.01
+        val_check_interval=val_check_interval
     )
 
     trainer.fit(
