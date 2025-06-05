@@ -1,8 +1,7 @@
 # Lightning Settings
-CUDA_VISIBLE_DEVICES=3 \
+# CUDA_VISIBLE_DEVICES=1,3 \
 OMP_NUM_THREADS=16 \
-torchrun --nproc_per_node=1 \
+torchrun --nproc_per_node=4 \
 train.py \
---strategy auto \
---devices 1 \
+--strategy ddp \
 "$@"
