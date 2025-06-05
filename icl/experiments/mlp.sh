@@ -4,7 +4,8 @@
 #SBATCH --error=icl_job.err
 #SBATCH --time=01:00:00
 #SBATCH --partition=scavenger-gpu
-#SBATCH --gres=gpu:RTXA5000:1
+#SBATCH --nodelist=dcc-engelhardlab-gpu-01
+#SBATCH --gres=gpu:1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
