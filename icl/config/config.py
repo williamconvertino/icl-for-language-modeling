@@ -34,12 +34,18 @@ class Config:
     
     use_icl_for_features = False
     
-    def __init__(self, preset_name=None, config_override_dict=None):
+    # Training Details (for name)
+    dataset = None
+    
+    def __init__(self, preset_name=None, config_override_dict=None, dataset=None):
+        
+        self.dataset = dataset
+        
         if preset_name is not None:
             self._load_from_yml(preset_name)
             
         if config_override_dict is not None:
-            self._override_from_dict(config_override_dict) 
+            self._override_from_dict(config_override_dict)
         
     def _load_from_yml(self, preset_name):
         path = f"../config/presets/{preset_name}.yml"
@@ -57,17 +63,15 @@ class Config:
                 print(f"Warning: Unknown config field '{key}' in {preset_name}.yml - ignored.")
     
     def _override_from_dict(self, override_dict):
-        for k,v in override_dict:
+        for k,v in override_dict.items():
             if hasattr(self, k):
-                setattr(self, v)
+                setattr(self, k, v)
             else:
                 print(f"Warning: Unknown config key '{k}' - ignored")
 
     def get_name(self, use_short_name=False):
-        name = self.model_type
         
-        if not use_short_name:
-            name += f"_{self.d_embed}D_{self.max_seq_len}S_{self.n_heads}H"
+        name = f"{self.model_type}_{self.d_embed}D_{self.max_seq_len}S_{self.n_heads}H"
         
         if self.model_type == "transformer":
             name += f"_{self.n_blocks}L"
@@ -104,5 +108,8 @@ class Config:
 
             if self.use_icl_for_features:
                 name += f"_iclFeatures"
-                
+        
+        if self.dataset is not None:
+            name += f"_ds={self.dataset}"
+        
         return name

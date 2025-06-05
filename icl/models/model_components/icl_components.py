@@ -52,6 +52,7 @@ class ICLAttention(nn.Module):
             k = self.rotary_embeddings(k)
         
         causal_mask = torch.triu(torch.ones(S, S), diagonal=0).bool().to(q.device) # (S, S)
+        causal_mask[0, 0] = False
         
         attn_scores = torch.matmul(q, k.transpose(-2, -1)) * self.attn_scale
         attn_scores = attn_scores.masked_fill(causal_mask, float('-inf')) # (B, S, S)
@@ -86,7 +87,7 @@ class ICLBlock(nn.Module):
             
     def forward(self, covariates, targets, functional_update):
         
-        if self.config.use_mlp_icl:
+        if self.config.use_mlp_for_icl:
             v = targets + self.mlp_expectation(functional_update)
         else:
             v = targets - self.calculate_embedding_expectation(functional_update) # (B, S + 1, E)

@@ -27,8 +27,10 @@ class Transformer(nn.Module):
     def forward(self, x, inference_mode=False):
         
         x = self.embedding(x)
+        
         for block in self.transformer_blocks:
             x = block(x)
+            
         x = self.ln_out(x)
         x = self.lm_head(x)
         
