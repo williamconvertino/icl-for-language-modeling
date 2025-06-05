@@ -3,8 +3,8 @@
 #SBATCH --output=icl_job.out
 #SBATCH --error=icl_job.err
 #SBATCH --time=01:00:00
-#SBATCH --partition=gpu              # Change to correct partition if needed
-#SBATCH --gres=gpu:RTXA5000:1        # Request 1 NVIDIA RTX A5000 GPU
+#SBATCH --partition=scavenger-gpu
+#SBATCH --gres=gpu:RTXA5000:1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=16G
