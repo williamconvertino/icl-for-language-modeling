@@ -24,7 +24,7 @@ class ICLAttention(nn.Module):
             if config.use_wv_for_icl:
                 self.W_v.weight = base_icl_attn.W_v.weight
         
-        if config.share_projection_for_icl:
+        if config.share_projection_for_icl and base_icl_attn is not None:
             self.W_o.weight = base_icl_attn.W_o.weight
         
         self.attn_scale = 1 / math.sqrt(config.d_embed)
