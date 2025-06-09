@@ -11,12 +11,12 @@ class ICLAttention(nn.Module):
         
         self.config = config
         
-        self.W_q = nn.Linear(config.d_embed, config.n_heads * config.d_embed, bias=False)
-        self.W_k = nn.Linear(config.d_embed, config.n_heads * config.d_embed, bias=False)
-        self.W_o = nn.Linear(config.n_heads * config.d_embed, config.d_embed, bias=False)
-        
+        self.W_q = nn.Linear(config.d_embed, config.d_embed, bias=False)
+        self.W_k = nn.Linear(config.d_embed, config.d_embed, bias=False)
+        self.W_o = nn.Linear(config.d_embed, config.d_embed, bias=False)
+
         if config.use_wv_for_icl:
-            self.W_v = nn.Linear(config.d_embed, config.n_heads * config.d_embed, bias=False)    
+            self.W_v = nn.Linear(config.d_embed, config.d_embed, bias=False)
         
         if config.share_heads_for_icl and base_icl_attn is not None:
             self.W_q.weight = base_icl_attn.W_q.weight
@@ -30,7 +30,7 @@ class ICLAttention(nn.Module):
         self.attn_scale = 1 / math.sqrt(config.d_embed)
         
         if config.use_rotary_for_icl:
-            self.rotary_embeddings = RotaryPositionalEmbeddings(config.d_embed)
+            self.rotary_embeddings = RotaryPositionalEmbeddings(config.d_embed // config.n_heads)
         
         self.drop_attn = nn.Dropout(0.1)
         self.drop_resid = nn.Dropout(0.1)
@@ -39,13 +39,13 @@ class ICLAttention(nn.Module):
         
         B, S, E = q.shape # Note that S here really represents S+1, as we add an additional global context token
         
-        q = self.W_q(q).view(B, S, self.config.n_heads, self.config.d_embed).transpose(1, 2)
-        k = self.W_k(k).view(B, S, self.config.n_heads, self.config.d_embed).transpose(1, 2)
+        q = self.W_q(q).view(B, S, self.config.n_heads, self.config.d_embed // self.config.n_heads).transpose(1, 2)
+        k = self.W_k(k).view(B, S, self.config.n_heads, self.config.d_embed // self.config.n_heads).transpose(1, 2)
         
         if self.config.use_wv_for_icl:
-            v = self.W_v(v).view(B, S, self.config.n_heads, self.config.d_embed).transpose(1, 2)
+            v = self.W_v(v).view(B, S, self.config.n_heads, self.config.d_embed // self.config.n_heads).transpose(1, 2)
         else:
-            v = v.unsqueeze(2).expand(B, S, self.config.n_heads, E).transpose(1, 2)
+            v = v.unsqueeze(2).expand(B, S, self.config.n_heads, self.config.d_embed // self.config.n_heads).transpose(1, 2)
             
         if self.config.use_rotary_for_icl:
             q = self.rotary_embeddings(q)
@@ -61,7 +61,7 @@ class ICLAttention(nn.Module):
         attn_probs = self.drop_attn(attn_probs)
         
         attn_output = torch.matmul(attn_probs, v)
-        attn_output = attn_output.transpose(1, 2).contiguous().view(B, S, self.config.d_embed * self.config.n_heads)
+        attn_output = attn_output.transpose(1, 2).contiguous().view(B, S, self.config.d_embed)
         attn_output = self.W_o(attn_output)
         attn_output = self.drop_resid(attn_output)
         
