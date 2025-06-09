@@ -11,7 +11,7 @@ def get_args():
 
     # General Info
     parser.add_argument("--mode", type=str, required=True, choices=["train", "eval", "generate"], help="Execution mode.")
-    parser.add_argument("--preset", type=str, default="transformer", choices=["transformer", "icl"], help="Model preset to use.")
+    parser.add_argument("--preset", type=str, default="transformer_small", choices=["transformer", "icl"], help="Model preset to use.")
     parser.add_argument("--override", type=str, default=None, help="Override config options, e.g., 'n_blocks=5,n_heads=4'.")
     parser.add_argument("--dataset", type=str, default="slimpajama", choices=["tinystories", "slimpajama"], help="Dataset to use for training.")
     parser.add_argument("--checkpoint", type=str, default=None, help="Checkpoint to load: 'last', 'best', or 'epoch_x'.")
