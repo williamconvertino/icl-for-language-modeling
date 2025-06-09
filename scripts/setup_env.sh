@@ -15,6 +15,7 @@ fi
 
 # Activate conda environment and install src package
 echo "Activating conda environment '$ENV_NAME' and installing src package..."
+source ~/miniconda3/etc/profile.d/conda.sh
 conda activate "$ENV_NAME" && pip install -e .
 
 cd "scripts"
