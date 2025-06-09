@@ -11,14 +11,14 @@ class Attention(nn.Module):
         self.config = config
         
         # We keep the attention heads square to better align with GD theory
-        self.W_q = nn.Linear(config.d_embed, config.n_heads * config.d_embed, bias=False)
-        self.W_k = nn.Linear(config.d_embed, config.n_heads * config.d_embed, bias=False)
-        self.W_v = nn.Linear(config.d_embed, config.n_heads * config.d_embed, bias=False)
-        self.W_o = nn.Linear(config.n_heads * config.d_embed, config.d_embed, bias=False)
+        self.W_q = nn.Linear(config.d_embed, config.d_embed, bias=False)
+        self.W_k = nn.Linear(config.d_embed, config.d_embed, bias=False)
+        self.W_v = nn.Linear(config.d_embed, config.d_embed, bias=False)
+        self.W_o = nn.Linear(config.d_embed, config.d_embed, bias=False)
         
         self.attn_scale = 1 / math.sqrt(config.d_embed)
         
-        self.rotary_embeddings = RotaryPositionalEmbeddings(config.d_embed)
+        self.rotary_embeddings = RotaryPositionalEmbeddings(config.d_embed // config.n_heads)
         
         self.drop_attn = nn.Dropout(0.1)
         self.drop_resid = nn.Dropout(0.1)
@@ -32,9 +32,9 @@ class Attention(nn.Module):
         
         B, S, E = q.shape
         
-        q = self.W_q(q).view(B, S, self.config.n_heads, self.config.d_embed).transpose(1, 2)
-        k = self.W_k(k).view(B, S, self.config.n_heads, self.config.d_embed).transpose(1, 2)
-        v = self.W_v(v).view(B, S, self.config.n_heads, self.config.d_embed).transpose(1, 2)
+        q = self.W_q(q).view(B, S, self.config.n_heads, self.config.d_embed // self.config.n_heads).transpose(1, 2)
+        k = self.W_k(k).view(B, S, self.config.n_heads, self.config.d_embed // self.config.n_heads).transpose(1, 2)
+        v = self.W_v(v).view(B, S, self.config.n_heads, self.config.d_embed // self.config.n_heads).transpose(1, 2)
         
         q = self.rotary_embeddings(q)
         k = self.rotary_embeddings(k)
@@ -48,7 +48,7 @@ class Attention(nn.Module):
         attn_probs = self.drop_attn(attn_probs)
         
         attn_output = torch.matmul(attn_probs, v)
-        attn_output = attn_output.transpose(1, 2).contiguous().view(B, S, self.config.d_embed * self.config.n_heads)
+        attn_output = attn_output.transpose(1, 2).contiguous().view(B, S, self.config.d_embed)
         attn_output = self.W_o(attn_output)
         attn_output = self.drop_resid(attn_output)
         

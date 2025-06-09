@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from icl.models.model_components import TransformerBlock, ICLBlock, initialize_weights
+from src.models.model_components import TransformerBlock, ICLBlock, initialize_weights
 
 class ICL(nn.Module):
     def __init__(self, config):

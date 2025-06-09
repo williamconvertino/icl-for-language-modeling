@@ -2,30 +2,26 @@ import os
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
+from .lightning import LightningWrapper
 
-from icl.util import parse_experiment_args, LightningWrapper
-
-def main():
+def train_model(model, args, splits, tokenizer):
     
-    model, tokenizer, splits, args = parse_experiment_args()
-
     train_dataloader = splits["train"]
     val_dataloader = splits["val"]
 
     lr=args.lr
     strategy=args.strategy
     val_check_interval=args.val_check_interval
-    
-    precision = "16-mixed"
-    accelerator="gpu"
-    max_epochs=10
-    
-    lightning_model = LightningWrapper(model=model, tokenizer=tokenizer, lr=lr)
+    max_epochs=args.max_epochs
+    precision=args.precision
+    accelerator=args.accelerator
     
     model_name = model.config.get_name()
 
     log_dir=f"../logs/{model_name}"
     checkpoint_dir=f"../checkpoints/{model_name}"
+
+    lightning_model = LightningWrapper(model=model, tokenizer=tokenizer, lr=lr)
 
     best_ckpt_callback = ModelCheckpoint(
         dirpath=checkpoint_dir,
@@ -40,7 +36,8 @@ def main():
         dirpath=checkpoint_dir,
         filename="epoch-{epoch:02d}-{val_loss:.2f}",
         every_n_epochs=1,
-        save_top_k=-1
+        save_top_k=-1,
+        save_on_train_epoch_end=True
     )
 
     callbacks = [best_ckpt_callback, epoch_ckpt_callback]
@@ -72,6 +69,5 @@ def main():
         val_dataloaders=val_dataloader,
         ckpt_path=last_ckpt_path
         )
-
-if __name__ == "__main__":
-    main()
+    
+    print(f"Training complete ({max_epochs} epochs)")
