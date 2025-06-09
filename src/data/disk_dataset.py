@@ -6,7 +6,7 @@ import numpy as np
 from tqdm import tqdm
 import re
 
-DATASET_DIR = "../data/datasets"
+DATASET_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "datasets"))
 
 class DiskDataset:
     

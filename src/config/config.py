@@ -48,7 +48,8 @@ class Config:
             self._override_values(config_override)
         
     def _load_from_yml(self, preset_name):
-        path = f"../config/presets/{preset_name}.yml"
+        
+        path = os.path.abspath(os.path.join(os.path.dirname(__file__), "presets", f"{preset_name}.yml"))
         
         if not os.path.isfile(path):
             raise FileNotFoundError(f"Preset '{preset_name}' not found at {path}")

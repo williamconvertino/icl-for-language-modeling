@@ -10,8 +10,8 @@ def get_args():
     parser = ArgumentParser()
 
     # General Info
-    parser.add_argument("--mode", type=str, required=True, choices=["train", "eval", "generate"], help="Execution mode.")
-    parser.add_argument("--preset", type=str, default="transformer_small", choices=["transformer", "icl"], help="Model preset to use.")
+    parser.add_argument("--mode", type=str, default="train", choices=["train", "eval", "generate"], help="Execution mode.")
+    parser.add_argument("--preset", type=str, default="transformer_small", help="Model preset to use.")
     parser.add_argument("--override", type=str, default=None, help="Override config options, e.g., 'n_blocks=5,n_heads=4'.")
     parser.add_argument("--dataset", type=str, default="slimpajama", choices=["tinystories", "slimpajama"], help="Dataset to use for training.")
     parser.add_argument("--checkpoint", type=str, default=None, help="Checkpoint to load: 'last', 'best', or 'epoch_x'.")
@@ -24,13 +24,16 @@ def get_args():
     parser.add_argument("--strategy", type=str, default="auto", choices=["auto", "ddp", "fsdp"], help="Training strategy.")
     parser.add_argument("--precision", type=str, default="16-mixed", choices=["16-mixed", "bf16-mixed", "32-true", "64-true"], help="Floating point precision: '16-mixed', 'bf16-mixed', '32-true', or '64-true'.")
     parser.add_argument("--accelerator", type=str, default="gpu", choices=["gpu", "tpu"], help="Device to run on.")
-
+    
     # Generation
     parser.add_argument("--prompt", type=str, default=None, help="Custom prompt string for text generation.")
     parser.add_argument("--num_samples", type=int, default=5, help="Number of dataset samples to generate from.")
     parser.add_argument("--max_length", type=int, default=50, help="Maximum number of tokens to generate.")
     parser.add_argument("--top_p", type=float, default=0.9, help="Nucleus sampling top-p value.")
     parser.add_argument("--temperature", type=float, default=1.0, help="Sampling temperature (higher = more random).")
+
+    # Script Level Args (not used in code)
+    parser.add_argument("--device", type=str, help="Specifies the devices on which the model should be loaded")
 
     args = parser.parse_args()
         
@@ -42,7 +45,7 @@ def main():
     
     args = get_args()
     
-    config = Config(preset_name=args.preset, config_override=args.override, dataset=args.dataset)
+    config = Config(preset_name=args.preset, config_override=args.override, dataset_name=args.dataset)
     
     if config.model_type == "transformer":
         model = Transformer(config)
@@ -53,15 +56,16 @@ def main():
 
     tokenizer = Tokenizer()
 
-    if config.dataset == "tinystories":
+    if args.dataset == "tinystories":
         splits = TinyStoriesDataset.get_splits(tokenizer, args.batch_size)
-    elif config.dataset == "slimpajama":
+    elif args.dataset == "slimpajama":
         splits = SlimPajamaDataset.get_splits(tokenizer, args.batch_size)
     else:
         raise ValueError(f"Dataset '{config.dataset}' is not recognized.")
     
     # Training
     if args.mode == "train":
+        print(f"Training model [{model.config.get_name()}] with strategy [{args.strategy}] on devices [{args.device}]")
         train_model(model, args, splits, tokenizer)
     
     # Evaluation
