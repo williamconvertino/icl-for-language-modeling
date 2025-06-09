@@ -9,13 +9,21 @@
 #SBATCH --partition=gpu-common
 #SBATCH --output=logs/%x-%j.out
 
-# Setup environment
 source ~/.bashrc
-source ../setup_env.sh || { echo "Failed to set up environment"; exit 1; }
+conda activate icl
 
-# Performance vars
+# Use the first device, unless specified
+DEVICES="0"
+
+for arg in "$@"; do
+  if [[ "$arg" == --device=* ]]; then
+    DEVICES="${arg#*=}"
+  fi
+done
+
+export CUDA_VISIBLE_DEVICES=$DEVICES
+
 export OMP_NUM_THREADS=10
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
-# Run the experiment
 torchrun --nproc_per_node=1 ../main.py "$@"
