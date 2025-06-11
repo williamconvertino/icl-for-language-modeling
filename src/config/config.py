@@ -1,7 +1,7 @@
 import os
 import yaml
-from types import SimpleNamespace
 from src.data import TOKENIZER
+import copy
 
 class Config:
     
@@ -72,6 +72,15 @@ class Config:
                 setattr(self, key, value)
             else:
                 print(f"Warning: Unknown config field '{key}' in override values - ignored.")
+
+    def clone(self):
+        new_config = Config()
+        new_config.__dict__ = copy.deepcopy(self.__dict__)
+        for attr in dir(self):
+            if not attr.startswith("__") and not callable(getattr(self, attr)):
+                if attr not in new_config.__dict__:
+                    setattr(new_config, attr, copy.deepcopy(getattr(self, attr)))
+        return new_config
 
     def get_name(self):
         

@@ -1,0 +1,3 @@
+model_type: ucl
+n_icl_blocks: 4
+share_heads_for_icl: false

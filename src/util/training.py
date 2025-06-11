@@ -15,7 +15,7 @@ def train_model(model, args, datamodule, tokenizer):
 
     model_name = model.config.get_name()
     
-    log_dir = os.path.join(args.output_dir, "logs", model_name)
+    log_dir = os.path.join(args.output_dir, "logs")
     checkpoint_dir = os.path.join(args.output_dir, "checkpoints", model_name)
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(checkpoint_dir, exist_ok=True)
