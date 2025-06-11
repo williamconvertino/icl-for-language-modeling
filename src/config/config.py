@@ -63,13 +63,36 @@ class Config:
                 print(f"Warning: Unknown config field '{key}' in {preset_name}.yml - ignored.")
     
     def _override_values(self, config_override):
+        def parse_value(val):
+            # Try to convert to int
+            try:
+                return int(val)
+            except ValueError:
+                pass
+            # Try to convert to float
+            try:
+                return float(val)
+            except ValueError:
+                pass
+            # Try to convert to bool
+            lowered = val.lower()
+            if lowered == "true":
+                return True
+            if lowered == "false":
+                return False
+            # Fallback: keep as string
+            return val
+
         config_override = config_override.split(",")
         for override in config_override:
             kv = override.split("=")
-            key = kv[0]
-            value = kv[1]
+            if len(kv) != 2:
+                print(f"Warning: Invalid override format '{override}' - ignored.")
+                continue
+            key, value = kv
             if hasattr(self, key):
-                setattr(self, key, value)
+                parsed_value = parse_value(value)
+                setattr(self, key, parsed_value)
             else:
                 print(f"Warning: Unknown config field '{key}' in override values - ignored.")
 
