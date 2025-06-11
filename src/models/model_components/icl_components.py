@@ -102,3 +102,9 @@ class ICLBlock(nn.Module):
             covariates = covariates + functional_update
 
         return covariates, targets, functional_update
+ 
+def x_to_icl(self, embeddings):
+    pass
+
+def icl_to_x(self, embeddings):
+    pass

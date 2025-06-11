@@ -55,7 +55,7 @@ class HFDataset(IterableDataset):
                 chunk = buffer[:self.seq_len]
                 buffer = buffer[self.seq_len:]
                 yield torch.tensor(
-                    self.tokenizer(chunk, truncation=True, padding="max_length", max_length=self.seq_len)["input_ids"]
+                    self.tokenizer(chunk, truncation=True, padding="max_length", max_length=self.seq_len)
                 )
 
 class PLDataModule(pl.LightningDataModule):
