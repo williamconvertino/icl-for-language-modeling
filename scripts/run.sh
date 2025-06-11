@@ -3,7 +3,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
-#SBATCH --mem-per-cpu=64G
+#SBATCH --mem=32G
 #SBATCH --gres=gpu:1
 #SBATCH --time=48:00:00
 #SBATCH --partition=scavenger-gpu
