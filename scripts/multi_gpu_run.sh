@@ -16,25 +16,31 @@
 source ~/.bashrc
 conda activate icl
 
-# Use all availible devices unless specified
 DEVICES="0,1,2,3"
+STRATEGY="ddp"
+ARGS=()
 
 for arg in "$@"; do
   if [[ "$arg" == --device=* ]]; then
     DEVICES="${arg#*=}"
-  fi
-done
-
-# Use DDP unless specified
-STRATEGY="ddp"
-for arg in "$@"; do
-  if [[ "$arg" == --strategy=* ]]; then
+  elif [[ "$arg" == --strategy=* ]]; then
     STRATEGY="${arg#*=}"
+  else
+    ARGS+=("$arg")
   fi
 done
 
+# Count number of devices
+IFS=',' read -ra DEVICE_LIST <<< "$DEVICES"
+NUM_DEVICES="${#DEVICE_LIST[@]}"
+
+# Export environment
 export CUDA_VISIBLE_DEVICES=$DEVICES
 export OMP_NUM_THREADS=10
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
-torchrun --nproc_per_node=4 ../main.py "$@" --strategy $STRATEGY
+echo "Using CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
+echo "Launching with $NUM_DEVICES processes (1 per device)"
+
+# Run with torchrun
+torchrun --nproc_per_node=$NUM_DEVICES ../main.py "${ARGS[@]}" --strategy $STRATEGY

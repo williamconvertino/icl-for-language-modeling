@@ -18,16 +18,31 @@ set -e
 source ~/.bashrc
 conda activate icl
 
-# Default to using GPU 0 unless overridden
 DEVICES="0"
+STRATEGY="auto"
+ARGS=()
+
 for arg in "$@"; do
   if [[ "$arg" == --device=* ]]; then
     DEVICES="${arg#*=}"
+  elif [[ "$arg" == --strategy=* ]]; then
+    STRATEGY="${arg#*=}"
+  else
+    ARGS+=("$arg")
   fi
 done
 
+# Count number of devices
+IFS=',' read -ra DEVICE_LIST <<< "$DEVICES"
+NUM_DEVICES="${#DEVICE_LIST[@]}"
+
+# Export environment
 export CUDA_VISIBLE_DEVICES=$DEVICES
 export OMP_NUM_THREADS=10
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
-torchrun --nproc_per_node=1 ../main.py "$@"
+echo "Using CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
+echo "Launching with $NUM_DEVICES processes (1 per device)"
+
+# Run with torchrun
+torchrun --nproc_per_node=$NUM_DEVICES ../main.py "${ARGS[@]}" --strategy $STRATEGY

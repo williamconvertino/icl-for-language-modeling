@@ -4,10 +4,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from .lightning import LightningWrapper
 
-def train_model(model, args, splits, tokenizer):
-    
-    train_dataloader = splits["train"]
-    val_dataloader = splits["val"]
+def train_model(model, args, datamodule, tokenizer):
 
     lr=args.lr
     strategy=args.strategy
@@ -15,11 +12,13 @@ def train_model(model, args, splits, tokenizer):
     max_epochs=args.max_epochs
     precision=args.precision
     accelerator=args.accelerator
-    
-    model_name = model.config.get_name()
 
-    log_dir=f"../logs/{model_name}"
-    checkpoint_dir=f"../checkpoints/{model_name}"
+    model_name = model.config.get_name()
+    
+    log_dir = os.path.join(args.output_dir, "logs", model_name)
+    checkpoint_dir = os.path.join(args.output_dir, "checkpoints", model_name)
+    os.makedirs(log_dir, exist_ok=True)
+    os.makedirs(checkpoint_dir, exist_ok=True)
 
     lightning_model = LightningWrapper(model=model, tokenizer=tokenizer, lr=lr)
 
@@ -65,8 +64,7 @@ def train_model(model, args, splits, tokenizer):
 
     trainer.fit(
         lightning_model, 
-        train_dataloaders=train_dataloader, 
-        val_dataloaders=val_dataloader,
+        datamodule=datamodule,
         ckpt_path=last_ckpt_path
         )
     

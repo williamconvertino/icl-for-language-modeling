@@ -1,17 +1,16 @@
 import os
 import yaml
 from types import SimpleNamespace
-from src.data import Tokenizer
-from src.data import DiskDataset
+from src.data import TOKENIZER
 
 class Config:
     
     # Shared Fields
     model_type = "transformer"
     d_embed = 512
-    max_seq_len = DiskDataset.MAX_SEQ_LEN
+    max_seq_len = 512
     n_heads = 8
-    vocab_size = Tokenizer.VOCAB_SIZE
+    vocab_size = len(TOKENIZER)
     
     # Transformer Model
     n_blocks = 1
