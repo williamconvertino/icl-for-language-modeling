@@ -2,9 +2,10 @@ import os
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
+from torch.utils.data import DataLoader
 from .lightning import LightningWrapper
 
-def train_model(model, args, datamodule, tokenizer):
+def train_model(model, args, splits, tokenizer):
 
     lr=args.lr
     strategy=args.strategy
@@ -61,10 +62,14 @@ def train_model(model, args, datamodule, tokenizer):
         log_every_n_steps=10,
         val_check_interval=val_check_interval
     )
+    
+    train_loader = DataLoader(splits["train"], batch_size=args.batch_size, num_workers=args.num_workers)
+    val_loader = DataLoader(splits["val"], batch_size=args.batch_size, num_workers=args.num_workers)
 
     trainer.fit(
         lightning_model, 
-        datamodule=datamodule,
+        train_dataloaders=train_loader,
+        val_dataloaders=val_loader,
         ckpt_path=last_ckpt_path
         )
     

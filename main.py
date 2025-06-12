@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 
 from src.config import Config
 from src.models import Transformer, ICL, UCL
-from src.data import TOKENIZER, TINYSTORIES_DM, SLIMPAJAMA_DM
+from src.data import TOKENIZER, TinyStoriesDataset
 
 from src.util import train_model
 
@@ -16,8 +16,8 @@ def get_args():
     parser.add_argument("--checkpoint", type=str, default=None, help="Checkpoint to load: 'last', 'best', or 'epoch_x'.")
 
     # Dataset
-    parser.add_argument("--dataset", type=str, default="slimpajama", choices=["tinystories", "slimpajama"], help="Dataset to use for training.")
-    parser.add_argument("--batch_size", type=int, default=64, help="Training batch size per GPU.")
+    parser.add_argument("--dataset", type=str, default="tinystories", choices=["tinystories", "slimpajama"], help="Dataset to use for training.")
+    parser.add_argument("--batch_size", type=int, default=32, help="Training batch size per GPU.")
     parser.add_argument("--num_workers", type=int, default=16, help="Number of workers to use for dataset loading.")
 
     # General Info
@@ -30,7 +30,7 @@ def get_args():
     # Training
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate.")
     parser.add_argument("--max_epochs", type=int, default=10, help="Maximum number of training epochs.")
-    parser.add_argument("--val_check_interval", type=float, default=20_000, help="Number of steps between validation checks.")    
+    parser.add_argument("--val_check_interval", type=float, default=0.2, help="Interval (percent) between validation checks.")    
     
     # Generation
     parser.add_argument("--prompt", type=str, default=None, help="Custom prompt string for text generation.")
@@ -63,16 +63,14 @@ def main():
         raise ValueError(f"Invalid model type: '{config.model_type}'.")
 
     if args.dataset == "tinystories":
-        datamodule = TINYSTORIES_DM(config.max_seq_len, batch_size=args.batch_size, num_workers=args.num_workers)
-    elif args.dataset == "slimpajama":
-        datamodule = SLIMPAJAMA_DM(config.max_seq_len, batch_size=args.batch_size, num_workers=args.num_workers)
+        splits = TinyStoriesDataset.get_splits(tokenizer, config.max_seq_len)
     else:
-        raise ValueError(f"Dataset '{config.dataset}' is not recognized.")
+        raise ValueError(f"Dataset '{config.dataset_name}' is not recognized.")
     
     # Training
     if args.mode == "train":
         print(f"Training model [{model.config.get_name()}] with strategy [{args.strategy}]")
-        train_model(model, args, datamodule, tokenizer)
+        train_model(model, args, splits, tokenizer)
     
     # Evaluation
     if args.mode == "eval":
