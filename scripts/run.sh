@@ -27,6 +27,9 @@ for arg in "$@"; do
     DEVICES="${arg#*=}"
   elif [[ "$arg" == --strategy=* ]]; then
     STRATEGY="${arg#*=}"
+  elif [[ "$arg" == --job-name=* ]]; then
+    # Skip SLURM-specific arguments
+    continue
   else
     ARGS+=("$arg")
   fi
