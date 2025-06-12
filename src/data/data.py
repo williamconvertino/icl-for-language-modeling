@@ -8,3 +8,6 @@ def SLIMPAJAMA_DM(seq_len, batch_size, num_workers):
 
 def TINYSTORIES_DM(seq_len, batch_size, num_workers):
     return PLDataModule("roneneldan/TinyStories", TOKENIZER, seq_len, batch_size, num_workers)
+
+def WIKITEXT_DM(seq_len, batch_size, num_workers):
+    return PLDataModule("mindchain/wikitext2", TOKENIZER, seq_len, batch_size, num_workers)

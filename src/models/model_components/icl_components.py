@@ -92,7 +92,7 @@ class ICLBlock(nn.Module):
             weighted_expectation = F.softmax(functional_update @ embedding_matrix.transpose(0, 1), dim=-1) @ embedding_matrix # (B, S + 1, E)
             return weighted_expectation.detach()
             
-    def forward(self, covariates, targets, functional_update):
+    def forward(self, covariates, targets, functional_update, skip_update=False):
         
         if self.config.use_mlp_for_icl:
             v = targets + self.mlp_expectation(functional_update)
@@ -103,9 +103,9 @@ class ICLBlock(nn.Module):
 
         delta_f = self.attn(q, k, v) # (B, S + 1, E)
 
+        if skip_update:
+            return covariates, targets, functional_update
+
         functional_update = functional_update + delta_f # (B, S + 1, E)
-        
-        if self.config.update_covariates:
-            covariates = covariates + functional_update
 
         return covariates, targets, functional_update

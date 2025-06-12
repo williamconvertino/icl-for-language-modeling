@@ -16,7 +16,7 @@ class HFDataset(IterableDataset):
         self.world_size = world_size
 
         self.cache_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "datasets")
-        self.dataset = load_dataset(hf_path, split=split, streaming=False, cache_dir=self.cache_dir)
+        self.dataset = load_dataset(hf_path, split=split, trust_remote_code=True, streaming=False, cache_dir=self.cache_dir)
         
         self._estimate_length()
         
