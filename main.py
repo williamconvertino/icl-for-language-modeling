@@ -17,7 +17,7 @@ def get_args():
 
     # Dataset
     parser.add_argument("--dataset", type=str, default="tinystories", choices=["tinystories", "slimpajama"], help="Dataset to use for training.")
-    parser.add_argument("--batch_size", type=int, default=32, help="Training batch size per GPU.")
+    parser.add_argument("--batch_size", type=int, default=128, help="Training batch size per GPU.")
     parser.add_argument("--num_workers", type=int, default=16, help="Number of workers to use for dataset loading.")
 
     # General Info
