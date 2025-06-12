@@ -8,6 +8,8 @@ class UCLBlock(nn.Module):
     def __init__(self, config, embedding, base_icl_attn=None):
         super().__init__()
         
+        self.config = config
+        
         if self.config.use_icl_for_features:
             self.feature_block = ICLBlock(config, embedding, base_icl_attn)
         else:
