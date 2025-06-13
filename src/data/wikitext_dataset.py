@@ -2,7 +2,7 @@ import os
 from datasets import load_dataset, concatenate_datasets
 from .disk_dataset import DiskDataset, DATASET_DIR
 
-HUGGINGFACE_PATH = "mindchain/wikitext2"
+HUGGINGFACE_PATH = "wikitext/wikitext-2-v1"
 
 class WikiTextDataset(DiskDataset):
     
