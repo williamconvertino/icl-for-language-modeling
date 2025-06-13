@@ -64,7 +64,7 @@ def main():
 
     if args.dataset == "tinystories":
         splits = TinyStoriesDataset.get_splits(tokenizer, config.max_seq_len)
-    elif args.datset == "wikitext":
+    elif args.dataset == "wikitext":
         splits = WikiTextDataset.get_splits(tokenizer, config.max_seq_len)
     else:
         raise ValueError(f"Dataset '{config.dataset_name}' is not recognized.")
