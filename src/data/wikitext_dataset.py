@@ -12,7 +12,7 @@ class WikiTextDataset(DiskDataset):
 
             print(f"Creating WikiText [{split}] dataset files...")
             
-            dataset = load_dataset("wikitext", "wikitext-2-v1", cache_dir=f"{DATASET_DIR}/raw", trust_remote_code=True)
+            dataset = load_dataset("wikitext", "wikitext-103-v1", cache_dir=f"{DATASET_DIR}/raw", trust_remote_code=True)
             dataset = concatenate_datasets([dataset["train"], dataset["validation"]])
             
             train_test_splits = dataset.train_test_split(test_size=10000, shuffle=True, seed=42)
