@@ -16,7 +16,7 @@ def get_args():
     parser.add_argument("--checkpoint", type=str, default=None, help="Checkpoint to load: 'last', 'best', or 'epoch_x'.")
 
     # Dataset
-    parser.add_argument("--dataset", type=str, default="tinystories", choices=["tinystories", "slimpajama"], help="Dataset to use for training.")
+    parser.add_argument("--dataset", type=str, default="tinystories", choices=["tinystories", "wikitext"], help="Dataset to use for training.")
     parser.add_argument("--batch_size", type=int, default=16, help="Training batch size per GPU.")
     parser.add_argument("--num_workers", type=int, default=16, help="Number of workers to use for dataset loading.")
 
