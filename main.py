@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 
 from src.config import Config
 from src.models import Transformer, ICL, UCL
-from src.data import TOKENIZER, TinyStoriesDataset
+from src.data import TOKENIZER, TinyStoriesDataset, WikiTextDataset
 
 from src.util import train_model
 
@@ -17,7 +17,7 @@ def get_args():
 
     # Dataset
     parser.add_argument("--dataset", type=str, default="tinystories", choices=["tinystories", "slimpajama"], help="Dataset to use for training.")
-    parser.add_argument("--batch_size", type=int, default=128, help="Training batch size per GPU.")
+    parser.add_argument("--batch_size", type=int, default=16, help="Training batch size per GPU.")
     parser.add_argument("--num_workers", type=int, default=16, help="Number of workers to use for dataset loading.")
 
     # General Info
@@ -64,6 +64,8 @@ def main():
 
     if args.dataset == "tinystories":
         splits = TinyStoriesDataset.get_splits(tokenizer, config.max_seq_len)
+    elif args.datset == "wikitext":
+        splits = WikiTextDataset.get_splits(tokenizer, config.max_seq_len)
     else:
         raise ValueError(f"Dataset '{config.dataset_name}' is not recognized.")
     

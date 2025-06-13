@@ -18,6 +18,16 @@ set -e
 source ~/.bashrc
 conda activate icl
 
+get_free_port() {
+  while : ; do
+    PORT=$((29500 + RANDOM % 500))
+    (echo >/dev/tcp/127.0.0.1/$PORT) &>/dev/null || break
+  done
+  echo $PORT
+}
+
+MASTER_PORT=$(get_free_port)
+
 DEVICES="0"
 STRATEGY="auto"
 ARGS=()
@@ -48,4 +58,4 @@ echo "Using CUDA_VISIBLE_DEVICES=$CUDA_VISIBLE_DEVICES"
 echo "Launching with $NUM_DEVICES processes (1 per device)"
 
 # Run with torchrun
-torchrun --nproc_per_node=$NUM_DEVICES ../main.py "${ARGS[@]}" --strategy $STRATEGY
+torchrun --master_port=$MASTER_PORT --nproc_per_node=$NUM_DEVICES ../main.py "${ARGS[@]}" --strategy $STRATEGY
