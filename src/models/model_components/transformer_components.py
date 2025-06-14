@@ -88,7 +88,7 @@ class TransformerBlock(nn.Module):
         self.mlp = MLP(config)
         self.ln_mlp = nn.LayerNorm(config.d_embed)
         
-    def forward(self, x):
-        x = x + self.attention(self.ln_attn(x))
+    def forward(self, x, k=None, v=None):
+        x = x + self.attention(self.ln_attn(x), k, v)
         x = x + self.mlp(self.ln_mlp(x))
         return x

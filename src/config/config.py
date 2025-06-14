@@ -34,6 +34,7 @@ class Config:
     use_icl_for_features = False
     
     # UCL Model
+    uc_update_mode = "x_trans"
     
     # Training Details
     dataset_name = None
@@ -146,6 +147,9 @@ class Config:
 
             if self.use_icl_for_features:
                 name += f"_iclFeatures"
+        
+        elif self.model_type == "uc":
+            name += f"_ucUpdate={self.uc_update_mode}"
         
         if self.dataset_name is not None:
             name += f"_ds={self.dataset_name}"
