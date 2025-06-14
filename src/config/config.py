@@ -118,7 +118,7 @@ class Config:
             if self.random_blocks:
                 name += f"_rand"
         
-        elif self.model_type == "icl":
+        elif self.model_type == "icl" or self.model_type == "uc":
             name += f"_{self.n_feature_blocks}F_{self.n_icl_blocks}ICL"
             
             if self.random_feature_blocks:
@@ -148,7 +148,7 @@ class Config:
             if self.use_icl_for_features:
                 name += f"_iclFeatures"
         
-        elif self.model_type == "uc":
+        if self.model_type == "uc":
             name += f"_ucUpdate={self.uc_update_mode}"
         
         if self.dataset_name is not None:
