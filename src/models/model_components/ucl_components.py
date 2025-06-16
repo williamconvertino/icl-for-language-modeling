@@ -28,6 +28,8 @@ class UCLBlock(nn.Module):
             covariates = covariates + covariate_update
         elif self.config.uc_update_mode == "func_trans" or self.config.uc_update_mode == "func_attn":
             covariates = self.feature_block(covariates, k=functional_update, v=functional_update)
+        elif self.config.uc_update_mode == "func_mlp":
+            covariates = self.feature_block(functional_update)
         else:
             covariates = self.feature_block(covariates)
             
