@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .transformer_components import TransformerBlock, Attention
+from .transformer_components import TransformerBlock, Attention, MLP
 from .icl_components import ICLBlock
 
 class UCLBlock(nn.Module):
@@ -14,6 +14,8 @@ class UCLBlock(nn.Module):
             self.feature_block = ICLBlock(config, embedding, base_icl_attn)
         elif self.config.uc_update_mode == "func_attn" or self.config.uc_update_mode == "x_attn":
             self.feature_block = Attention(config)
+        elif self.config.uc_update_mode == "func_mlp" or self.config.uc_update_mode == "x_mlp":
+            self.feature_block = MLP(config)
         else:
             self.feature_block = TransformerBlock(config)
         
