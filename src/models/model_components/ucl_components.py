@@ -26,12 +26,18 @@ class UCLBlock(nn.Module):
         if self.config.use_icl_for_features:
             _, _, covariate_update = self.feature_block(functional_update, targets, covariates, skip_update=True)
             covariates = covariates + covariate_update
-        elif self.config.uc_update_mode == "func_trans" or self.config.uc_update_mode == "func_attn":
-            covariates = self.feature_block(covariates, k=functional_update, v=functional_update)
+        elif self.config.uc_update_mode == "func_trans":
+            covariates = self.feature_block(functional_update, k=functional_update, v=covariates)
+        elif self.config.uc_update_mode == "func_attn":
+            covariates = covariates + self.feature_block(functional_update, k=functional_update, v=covariates)
+        elif self.config.uc_update_mode == "x_trans":
+            covariates = covariates + self.feature_block(covariates)
+        elif self.config.uc_update_mode == "x_attn":
+            covariates = covariates + self.feature_block(covariates)
         elif self.config.uc_update_mode == "func_mlp":
-            covariates = self.feature_block(functional_update)
-        else:
-            covariates = self.feature_block(covariates)
+            covariates = covariates + self.feature_block(functional_update)
+        elif self.config.uc_update_mode == "x_mlp":
+            covariates = covariates + self.feature_block(covariates)
             
         covariates, targets, functional_update = self.icl_block(covariates, targets, functional_update)
 
