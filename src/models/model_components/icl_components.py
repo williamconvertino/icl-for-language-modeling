@@ -96,6 +96,8 @@ class ICLBlock(nn.Module):
         
         if self.config.use_mlp_for_icl:
             v = targets + self.mlp_expectation(functional_update)
+        elif self.config.use_no_icl_exp:
+            v = targets
         else:
             v = targets - self.calculate_embedding_expectation(functional_update) # (B, S + 1, E)
             

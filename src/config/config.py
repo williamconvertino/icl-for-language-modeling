@@ -5,7 +5,7 @@ import copy
 
 class Config:
     
-    # Shared Fields
+    # Common Fields
     model_type = "transformer"
     d_embed = 512
     max_seq_len = 512
@@ -28,6 +28,7 @@ class Config:
     use_wv_for_icl = False
     use_rotary_for_icl = False
     use_mlp_for_icl = False
+    use_no_icl_exp = False
     
     update_covariates = False
     
@@ -147,6 +148,9 @@ class Config:
 
             if self.use_icl_for_features:
                 name += f"_iclFeatures"
+
+            if self.use_no_icl_exp:
+                name += f"_noICLEXP"
         
         if self.model_type == "ucl":
             name += f"_ucUpdate={self.uc_update_mode}"

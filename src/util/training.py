@@ -21,7 +21,7 @@ def train_model(model, args, splits, tokenizer):
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(checkpoint_dir, exist_ok=True)
 
-    lightning_model = LightningWrapper(model=model, tokenizer=tokenizer, lr=lr)
+    lightning_model = LightningWrapper(model=model, tokenizer=tokenizer, args=args, lr=lr)
 
     best_ckpt_callback = ModelCheckpoint(
         dirpath=checkpoint_dir,

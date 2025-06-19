@@ -34,8 +34,6 @@ def get_args():
     
     # Generation
     parser.add_argument("--prompt", type=str, default=None, help="Custom prompt string for text generation.")
-    parser.add_argument("--num_samples", type=int, default=5, help="Number of dataset samples to generate from.")
-    parser.add_argument("--max_length", type=int, default=50, help="Maximum number of tokens to generate.")
     parser.add_argument("--top_p", type=float, default=0.9, help="Nucleus sampling top-p value.")
     parser.add_argument("--temperature", type=float, default=1.0, help="Sampling temperature (higher = more random).")
 

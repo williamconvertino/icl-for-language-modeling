@@ -1,40 +1,52 @@
+import os
+import glob
 import torch
-import torch.nn.functional as F
+from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
-from src.util import parse_experiment_args, resolve_checkpoint_path, LightningWrapper
+from torch.utils.data import DataLoader, Subset
+from .lightning import LightningWrapper
 
-def nucleus_sample(logits, top_p=0.9, temperature=1.0):
-    logits = logits / temperature
-    probs = F.softmax(logits, dim=-1)
+def generate_from_model(model, args, splits, tokenizer):
+    model_name = model.config.get_name()
+    
+    log_dir = os.path.join(args.output_dir, "logs")
+    checkpoint_dir = os.path.join(args.output_dir, "checkpoints", model_name)
+    os.makedirs(log_dir, exist_ok=True)
 
-    sorted_probs, sorted_indices = torch.sort(probs, descending=True)
-    cumulative_probs = torch.cumsum(sorted_probs, dim=-1)
+    ckpt_pattern = os.path.join(checkpoint_dir, "best-model-*.ckpt")
+    ckpt_files = glob.glob(ckpt_pattern)
+    if not ckpt_files:
+        raise FileNotFoundError(f"No checkpoint matching '{ckpt_pattern}' found.")
+    best_ckpt_path = sorted(ckpt_files)[-1]  # take latest/best by name
+    print(f"Loading best checkpoint from: {best_ckpt_path}")
 
-    cutoff = (cumulative_probs > top_p).float().argmax(dim=-1)
-    mask = torch.arange(logits.size(-1), device=logits.device).unsqueeze(0) > cutoff.unsqueeze(1)
-    sorted_probs[mask] = 0
-    sorted_probs = sorted_probs / sorted_probs.sum(dim=-1, keepdim=True)
+    lightning_model = LightningWrapper.load_from_checkpoint(
+        checkpoint_path=best_ckpt_path,
+        model=model,
+        tokenizer=tokenizer,
+        args=args,
+        lr=args.lr
+    )
 
-    sampled = torch.multinomial(sorted_probs, num_samples=1)
-    return sorted_indices.gather(-1, sampled)
+    logger = TensorBoardLogger(save_dir=log_dir, name=model_name)
 
-def generate_text(model, tokenizer, prompt, max_length, top_p, temperature):
-    model.eval()
-    device = next(model.parameters()).device
+    trainer = Trainer(
+        accelerator=args.accelerator,
+        strategy=args.strategy,
+        precision=args.precision,
+        logger=logger
+    )
 
-    prompt_ids = tokenizer.encode(prompt)
-    input_tensor = torch.tensor(prompt_ids, dtype=torch.long, device=device).unsqueeze(0)
-    generated = input_tensor.clone()
+    test_dataset = splits["test"]
+    single_batch = Subset(test_dataset, range(args.batch_size))
+    test_dataset = DataLoader(single_batch, batch_size=args.batch_size, num_workers=args.num_workers)
 
-    for _ in range(max_length):
-        logits = model(generated)
-        next_token_logits = logits[:, -1, :]
-        next_token = nucleus_sample(next_token_logits, top_p=top_p, temperature=temperature)
-        generated = torch.cat([generated, next_token], dim=1)
+    outputs = trainer.predict(model=lightning_model, dataloaders=test_dataset)
 
-        if tokenizer.eos_token_id is not None and next_token.item() == tokenizer.eos_token_id:
-            break
-
-    # Strip prompt from output
-    generated_ids = generated[0].tolist()[len(prompt_ids):]
-    return tokenizer.decode(generated_ids, skip_special_tokens=True)
+    # Concatenate and optionally decode
+    all_outputs = torch.cat(outputs, dim=0)
+    if getattr(args, "decode", True):
+        decoded = tokenizer.batch_decode(all_outputs, skip_special_tokens=True)
+        return decoded
+    else:
+        return all_outputs
