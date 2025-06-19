@@ -36,7 +36,7 @@ class ICLAttention(nn.Module):
         if self.config.use_W_v:
             v = self.W_v(v).view(B, S, self.config.n_heads_icl, self.config.d_attn_icl // self.config.n_heads_icl).transpose(1, 2)
         else:
-            v = v.unsqueeze(2).expand(B, S, self.config.n_heads_icl, self.config.d_attn_icl).transpose(1, 2)
+            v = v.unsqueeze(2).expand(B, S, self.config.n_heads_icl, self.config.d_component).transpose(1, 2)
         
         q = self.rotary_embeddings(q)
         k = self.rotary_embeddings(k)

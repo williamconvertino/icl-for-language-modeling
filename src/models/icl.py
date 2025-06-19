@@ -45,6 +45,4 @@ class ICL(nn.Module):
         functional_update = self.ln_out(functional_update)
         logits = self.lm_head(functional_update)
         
-        logits = torch.cat([logits, ])
-        
         return logits
