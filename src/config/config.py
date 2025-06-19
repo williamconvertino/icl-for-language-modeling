@@ -15,7 +15,6 @@ class Config:
     
     # ICL Specific
     d_component = 512 # Allows us to edit the dimension of the vector components without changing the hidden dimensions of our model
-    reduced_vectors = False
     share_mlp = False
     start_with_mlp = True
     end_with_mlp = False
@@ -119,10 +118,7 @@ class Config:
             
             if self.end_with_mlp:
                 name += f"_mlpEnd"
-                
-            if self.reduced_vectors:
-                name += f"_reducedVectors"
-
+               
             if self.update_targets: 
                 name += f"_updateTargets"
             
