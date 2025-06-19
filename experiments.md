@@ -10,4 +10,7 @@
 
 - MLP shared or not
 - Dimension of vectors
-- MLP first or not
+- MLP at input (for covariates only)
+- MLP at output (for functional update only)
+- Num heads allocated to each part
+- Update targets

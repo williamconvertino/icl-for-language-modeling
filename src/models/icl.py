@@ -1,5 +1,6 @@
+import torch
 import torch.nn as nn
-from src.models.model_components import TransformerBlock, initialize_weights
+from src.models.model_components import ICLBlock, MLP, initialize_weights
 
 class ICL(nn.Module):
     def __init__(self, config):
@@ -7,31 +8,41 @@ class ICL(nn.Module):
         
         self.config = config
         
-        self.embedding = nn.Embedding(config.vocab_size, config.d_embed)
+        self.embedding = nn.Embedding(config.vocab_size, config.d_component)
         
-        self.transformer_blocks = nn.ModuleList([TransformerBlock(config) for _ in range(config.n_blocks)])
+        if config.end_with_mlp:
+            self.end_mlp = MLP(config)
         
-        # Prevents transformer blocks from training
-        if config.random_blocks:
-            for block in self.transformer_blocks:
-                for param in block.parameters():
-                    param.requires_grad = False
+        self.icl_blocks = nn.ModuleList([ICLBlock(config, i) for i in range(config.n_blocks)])
                 
-        self.ln_out = nn.LayerNorm(config.d_embed)
+        self.ln_out = nn.LayerNorm(config.d_component)
         
-        self.lm_head = nn.Linear(config.d_embed, config.vocab_size, bias=False)
+        self.lm_head = nn.Linear(config.d_component, config.vocab_size, bias=False)
         self.lm_head.weight = self.embedding.weight
         
         self.apply(initialize_weights)
     
-    def forward(self, x, inference_mode=False):
+    def forward(self, x):
         
-        x = self.embedding(x)
+        embeddings = self.embedding(x)
         
-        for block in self.transformer_blocks:
-            x = block(x)
+        B, S, E = embeddings.shape
+        device = x.device
+        
+        covariates = embeddings
+        
+        targets = embeddings[:, 1:, :]
+        targets = torch.cat([targets, torch.zeros(B, 1, E, device=device)], dim=1)
+        
+        functional_update = torch.zeros_like(embeddings)
+        
+        for block in self.icl_blocks:
+            covariates, targets, functional_update = block(covariates, targets, functional_update)
             
-        x = self.ln_out(x)
-        x = self.lm_head(x)
+        if self.config.end_mlp:
+            functional_update = functional_update + self.end_mlp(functional_update)
+            
+        functional_update = self.ln_out(functional_update)
+        logits = self.lm_head(functional_update)
         
-        return x
+        return logits

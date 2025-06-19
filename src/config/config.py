@@ -14,10 +14,17 @@ class Config:
     n_blocks = 8
     
     # ICL Specific
+    d_component = 512 # Allows us to edit the dimension of the vector components without changing the hidden dimensions of our model
     reduced_vectors = False
     share_mlp = False
-    start_with_mlp = False
+    start_with_mlp = True
     end_with_mlp = False
+    
+    n_heads_icl = 4 # Overrides the default n_heads
+    n_heads_covariate = 4
+    
+    update_targets = False
+    use_W_v = False
     
     # Training Details
     dataset_name = None
@@ -95,10 +102,15 @@ class Config:
 
     def get_name(self):
         
-        name = f"{self.model_type}_{self.d_embed}D_{self.max_seq_len}S_{self.n_heads}H_{self.n_blocks}L"
+        name = f"{self.model_type}_{self.d_embed}D_{self.max_seq_len}S_{self.n_blocks}L"
+        
+        if self.model_type == "transformer":
+            name += f"_{self.n_heads}H"
         
         if self.model_type == "icl":
           
+            name += f"_{self.n_heads_covariate}HC_{self.n_heads_icl}HICL_{self.d_component}COMP"
+            
             if self.share_mlp:
                 name += f"_shareMLP"
             
@@ -110,6 +122,12 @@ class Config:
                 
             if self.reduced_vectors:
                 name += f"_reducedVectors"
+
+            if self.update_targets: 
+                name += f"_updateTargets"
+            
+            if self.use_W_v:
+                name += f"_useWV"
         
         if self.dataset_name is not None:
             name += f"_ds={self.dataset_name}"

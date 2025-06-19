@@ -18,7 +18,7 @@ class Transformer(nn.Module):
         
         self.apply(initialize_weights)
     
-    def forward(self, x, inference_mode=False):
+    def forward(self, x):
         
         x = self.embedding(x)
         
