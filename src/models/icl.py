@@ -39,7 +39,7 @@ class ICL(nn.Module):
         for block in self.icl_blocks:
             covariates, targets, functional_update = block(covariates, targets, functional_update)
             
-        if self.config.end_mlp:
+        if self.config.end_with_mlp:
             functional_update = functional_update + self.end_mlp(functional_update)
             
         functional_update = self.ln_out(functional_update)

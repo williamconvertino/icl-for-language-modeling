@@ -24,7 +24,7 @@ class Config:
     n_heads_covariate = 4
     
     update_targets = False
-    use_W_v = False
+    use_W_v = True
     
     # Training Details
     dataset_name = None
