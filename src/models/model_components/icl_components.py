@@ -56,7 +56,7 @@ class ICLAttention(nn.Module):
         if self.config.use_W_v:
             attn_output = self.W_o(attn_output.view(B, S, self.config.d_attn_icl))
         else:
-            attn_output = self.W_o(attn_output.view(B, S, self.config.n_heads_icl * self.config.d_attn_icl))
+            attn_output = self.W_o(attn_output.view(B, S, self.config.n_heads_icl * self.config.d_component))
         
         attn_output = self.drop_resid(attn_output)
         
