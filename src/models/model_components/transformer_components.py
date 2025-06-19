@@ -10,7 +10,6 @@ class Attention(nn.Module):
         
         self.config = config
         
-        # We keep the attention heads square to better align with GD theory
         self.W_q = nn.Linear(config.d_embed, config.d_embed, bias=False)
         self.W_k = nn.Linear(config.d_embed, config.d_embed, bias=False)
         self.W_v = nn.Linear(config.d_embed, config.d_embed, bias=False)
@@ -23,12 +22,7 @@ class Attention(nn.Module):
         self.drop_attn = nn.Dropout(0.1)
         self.drop_resid = nn.Dropout(0.1)
         
-    def forward(self, q, k=None, v=None):
-        
-        if k is None:
-            k = q
-        if v is None:
-            v = q
+    def forward(self, q):
         
         B, S, E = q.shape
         
@@ -55,16 +49,11 @@ class Attention(nn.Module):
         return attn_output
     
 class MLP(nn.Module):
-    def __init__(self, config, d_in=None, d_out=None):
+    def __init__(self, config):
         super().__init__()
 
-        if d_in is None:
-            d_in = config.d_embed
-        if d_out is None:
-            d_out = config.d_embed
-
-        self.fc_1 = nn.Linear(d_in, 4 * config.d_embed)
-        self.fc_2 = nn.Linear(4 * config.d_embed, d_out)
+        self.fc_1 = nn.Linear(config.d_embed, 4 * config.d_embed)
+        self.fc_2 = nn.Linear(4 * config.d_embed, config.d_embed)
         
         self.activation = nn.GELU()    
         self.drop = nn.Dropout(0.1)
@@ -88,7 +77,7 @@ class TransformerBlock(nn.Module):
         self.mlp = MLP(config)
         self.ln_mlp = nn.LayerNorm(config.d_embed)
         
-    def forward(self, x, k=None, v=None):
-        x = x + self.attention(self.ln_attn(x), k, v)
+    def forward(self, x):
+        x = x + self.attention(self.ln_attn(x))
         x = x + self.mlp(self.ln_mlp(x))
         return x
