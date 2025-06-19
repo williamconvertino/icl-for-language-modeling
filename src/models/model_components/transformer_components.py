@@ -24,6 +24,8 @@ class Attention(nn.Module):
         
     def forward(self, q):
         
+        k = v = q
+        
         B, S, E = q.shape
         
         q = self.W_q(q).view(B, S, self.config.n_heads, self.config.d_embed // self.config.n_heads).transpose(1, 2)
