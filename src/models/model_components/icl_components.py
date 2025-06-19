@@ -41,7 +41,8 @@ class ICLAttention(nn.Module):
         q = self.rotary_embeddings(q)
         k = self.rotary_embeddings(k)
         
-        causal_mask = torch.triu(torch.ones(S, S), diagonal=1).bool().to(q.device)
+        causal_mask = torch.triu(torch.ones(S, S), diagonal=0).bool().to(q.device)
+        causal_mask[0, 0] = False
         
         attn_scores = torch.matmul(q, k.transpose(-2, -1)) * self.attn_scale
         attn_scores = attn_scores.masked_fill(causal_mask, float('-inf'))
