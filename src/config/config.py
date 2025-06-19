@@ -1,6 +1,6 @@
 import os
 import yaml
-from src.data import TOKENIZER
+from src.data import Tokenizer
 import copy
 
 class Config:
@@ -10,7 +10,7 @@ class Config:
     d_embed = 512
     max_seq_len = 512
     n_heads = 8
-    vocab_size = len(TOKENIZER)
+    vocab_size = len(Tokenizer())
     n_blocks = 8
     
     # ICL Specific
