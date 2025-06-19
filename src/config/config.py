@@ -14,8 +14,8 @@ class Config:
     n_blocks = 8
     
     # ICL Specific
-    share_mlp = False
     reduced_vectors = False
+    share_mlp = False
     start_with_mlp = False
     end_with_mlp = False
     
