@@ -26,9 +26,7 @@ class ICLAttention(nn.Module):
         self.drop_attn = nn.Dropout(0.1)
         self.drop_resid = nn.Dropout(0.1)
         
-    def forward(self, q):
-        
-        k = v = q
+    def forward(self, q, k, v):
         
         B, S, E = q.shape
         
@@ -81,7 +79,7 @@ class CovariateAttention(nn.Module):
         self.drop_attn = nn.Dropout(0.1)
         self.drop_resid = nn.Dropout(0.1)
         
-    def forward(self, q):
+    def forward(self, q, k, v):
         
         k = v = q
         
