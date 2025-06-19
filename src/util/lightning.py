@@ -30,14 +30,19 @@ class LightningWrapper(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x = batch[:, :-1]
         y = batch[:, 1:]
+        y[:, 0] = self.tokenizer.pad_token_id # Necessary for faster ICL training (otherwise we need to append a global start token)
+        
         logits = self(x)
         loss = self._compute_loss(logits, y)
         self.log("train_loss", loss, prog_bar=True)
+        
         return loss
 
     def validation_step(self, batch, batch_idx):
         x = batch[:, :-1]
         y = batch[:, 1:]
+        y[:, 0] = self.tokenizer.pad_token_id 
+        
         logits = self(x)
         loss = self._compute_loss(logits, y)
 
@@ -46,49 +51,6 @@ class LightningWrapper(pl.LightningModule):
 
         return loss
     
-    @torch.no_grad()
-    def predict_step(self, batch, batch_idx):
-        
-        max_new_tokens = batch.shape[1] + self.model.config.max_seq_len
-        eos_token_id = self.tokenizer.eos_token_id
-        pad_token_id = self.tokenizer.pad_token_id
-        
-        top_p = self.args.top_p
-        temperature = self.args.temperature
-
-        input_ids = batch
-        B = input_ids.size(0)
-
-        finished = torch.zeros(B, dtype=torch.bool, device=self.device)
-
-        for _ in range(max_new_tokens):
-            logits = self.model(input_ids)
-            next_token_logits = logits[:, -1, :]
-
-            probs = F.softmax(next_token_logits / temperature, dim=-1)
-            sorted_probs, sorted_indices = torch.sort(probs, descending=True, dim=-1)
-            cumulative_probs = sorted_probs.cumsum(dim=-1)
-
-            mask = cumulative_probs <= top_p
-            mask[:, 0] = 1
-
-            probs_filtered = torch.where(mask, sorted_probs, torch.tensor(0.0, device=self.device))
-            probs_filtered = probs_filtered / probs_filtered.sum(dim=-1, keepdim=True)
-
-            sampled = torch.multinomial(probs_filtered, num_samples=1).squeeze(-1)
-            next_tokens = sorted_indices.gather(dim=1, index=sampled.unsqueeze(-1)).squeeze(-1)
-
-            next_tokens = torch.where(finished, pad_token_id, next_tokens)
-
-            input_ids = torch.cat([input_ids, next_tokens.unsqueeze(1)], dim=1)
-
-            finished = finished | (next_tokens == eos_token_id)
-
-            if finished.all():
-                break
-
-        return input_ids
-        
     def configure_optimizers(self):
         optimizer = torch.optim.AdamW(
             self.parameters(), 

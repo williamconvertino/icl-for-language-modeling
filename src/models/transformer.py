@@ -10,12 +10,6 @@ class Transformer(nn.Module):
         self.embedding = nn.Embedding(config.vocab_size, config.d_embed)
         
         self.transformer_blocks = nn.ModuleList([TransformerBlock(config) for _ in range(config.n_blocks)])
-        
-        # Prevents transformer blocks from training
-        if config.random_blocks:
-            for block in self.transformer_blocks:
-                for param in block.parameters():
-                    param.requires_grad = False
                 
         self.ln_out = nn.LayerNorm(config.d_embed)
         

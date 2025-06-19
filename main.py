@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 
 from src.config import Config
 from src.models import Transformer, ICL, UCL
-from src.data import TOKENIZER, TinyStoriesDataset, WikiTextDataset
+from src.data import TinyStoriesDataset, WikiTextDataset, Tokenizer
 
 from src.util import train_model
 
@@ -32,11 +32,6 @@ def get_args():
     parser.add_argument("--max_epochs", type=int, default=10, help="Maximum number of training epochs.")
     parser.add_argument("--val_check_interval", type=float, default=0.2, help="Interval (percent) between validation checks.")    
     
-    # Generation
-    parser.add_argument("--prompt", type=str, default=None, help="Custom prompt string for text generation.")
-    parser.add_argument("--top_p", type=float, default=0.9, help="Nucleus sampling top-p value.")
-    parser.add_argument("--temperature", type=float, default=1.0, help="Sampling temperature (higher = more random).")
-
     args = parser.parse_args()
         
     return args
@@ -49,7 +44,7 @@ def main():
     
     config = Config(preset_name=args.preset, config_override=args.override, dataset_name=args.dataset)
     
-    tokenizer = TOKENIZER
+    tokenizer = Tokenizer()
     
     if config.model_type == "transformer":
         model = Transformer(config)

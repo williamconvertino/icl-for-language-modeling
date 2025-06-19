@@ -5,37 +5,19 @@ import copy
 
 class Config:
     
-    # Common Fields
+    # Model Info
     model_type = "transformer"
     d_embed = 512
     max_seq_len = 512
     n_heads = 8
     vocab_size = len(TOKENIZER)
+    n_blocks = 8
     
-    # Transformer Model
-    n_blocks = 1
-    random_blocks = False
-    
-    # ICL Model
-    n_feature_blocks = 1
-    n_icl_blocks = 1
-    
-    random_feature_blocks = False
-    random_icl_blocks = False
-    
-    share_heads_for_icl = True
-    share_projection_for_icl = False
-    use_wv_for_icl = False
-    use_rotary_for_icl = False
-    use_mlp_for_icl = False
-    use_no_icl_exp = False
-    
-    update_covariates = False
-    
-    use_icl_for_features = False
-    
-    # UCL Model
-    uc_update_mode = "x_trans"
+    # ICL Specific
+    share_mlp = False
+    reduced_vectors = False
+    start_with_mlp = False
+    end_with_mlp = False
     
     # Training Details
     dataset_name = None
@@ -68,26 +50,28 @@ class Config:
     
     def _override_values(self, config_override):
         def parse_value(val):
-            # Try to convert to int
+            
             try:
                 return int(val)
             except ValueError:
                 pass
-            # Try to convert to float
+            
             try:
                 return float(val)
             except ValueError:
                 pass
-            # Try to convert to bool
+            
             lowered = val.lower()
+            
             if lowered == "true":
                 return True
             if lowered == "false":
                 return False
-            # Fallback: keep as string
+            
             return val
 
         config_override = config_override.split(",")
+        
         for override in config_override:
             kv = override.split("=")
             if len(kv) != 2:
@@ -111,49 +95,21 @@ class Config:
 
     def get_name(self):
         
-        name = f"{self.model_type}_{self.d_embed}D_{self.max_seq_len}S_{self.n_heads}H"
+        name = f"{self.model_type}_{self.d_embed}D_{self.max_seq_len}S_{self.n_heads}H_{self.n_blocks}L"
         
-        if self.model_type == "transformer":
-            name += f"_{self.n_blocks}L"
+        if self.model_type == "icl":
+          
+            if self.share_mlp:
+                name += f"_shareMLP"
             
-            if self.random_blocks:
-                name += f"_rand"
-        
-        elif self.model_type == "icl" or self.model_type == "ucl":
-            name += f"_{self.n_feature_blocks}F_{self.n_icl_blocks}ICL"
+            if self.start_with_mlp:
+                name += f"_mlpStart"
             
-            if self.random_feature_blocks:
-                name += f"_randF"
-            
-            if self.random_icl_blocks:
-                name += f"_randICL"
-            
-            if self.share_heads_for_icl:
-                name += f"_shareHeadsICL"
-            
-            if self.share_projection_for_icl:
-                name += f"_sharedProjICL"
-            
-            if self.use_wv_for_icl:
-                name += f"_wvICL"
-            
-            if self.use_rotary_for_icl:
-                name += f"_rotaryICL"
+            if self.end_with_mlp:
+                name += f"_mlpEnd"
                 
-            if self.use_mlp_for_icl:
-                name += f"_mlpICL"
-    
-            if self.update_covariates:
-                name += f"_updatedCovariates"
-
-            if self.use_icl_for_features:
-                name += f"_iclFeatures"
-
-            if self.use_no_icl_exp:
-                name += f"_noICLEXP"
-        
-        if self.model_type == "ucl":
-            name += f"_ucUpdate={self.uc_update_mode}"
+            if self.reduced_vectors:
+                name += f"_reducedVectors"
         
         if self.dataset_name is not None:
             name += f"_ds={self.dataset_name}"

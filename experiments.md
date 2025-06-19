@@ -1,6 +1,13 @@
-Transformer 8L:
-ICL 8L (4, 4):
-ICL 8L Shared (4, 4):
-ICL 8L (6, 2):
-ICL 8L Shared (6, 2):
-UCL 8L:
+# All model defaults
+
+- Full dimensional vectors
+- Num Heads allocated
+- Attention is exact (except for masking) -> Has W_v
+- MLP dimensions allocated
+- Attn -> MLP
+
+# What to vary
+
+- MLP shared or not
+- Dimension of vectors
+- MLP first or not

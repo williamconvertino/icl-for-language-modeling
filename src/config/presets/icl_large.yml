@@ -1,4 +1,0 @@
-model_type: icl
-
-n_feature_blocks: 10
-n_icl_blocks: 2
