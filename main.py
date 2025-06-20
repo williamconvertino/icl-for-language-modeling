@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 
 from src.config import Config
-from src.models import Transformer, ICL
+from src.models import Transformer, ICL, ICL2
 from src.data import TinyStoriesDataset, WikiTextDataset, Tokenizer
 
 from src.util import train_model
@@ -50,6 +50,8 @@ def main():
         model = Transformer(config)
     elif config.model_type == "icl":
         model = ICL(config)
+    elif config.model_type == "icl2":
+        model = ICL2(config)
     else:
         raise ValueError(f"Invalid model type: '{config.model_type}'.")
 

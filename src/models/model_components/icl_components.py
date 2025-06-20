@@ -181,3 +181,96 @@ class ICLBlock(nn.Module):
             covariates = covariates + self.attn_covariate(q, k, v)
             
         return covariates, targets, functional_update
+    
+class ICL2Block(nn.Module):
+    def __init__(self, config, layer_index):
+        super().__init__()
+        
+        self.config = config
+        self.layer_index = layer_index
+        
+        if layer_index == 0:
+            # config.d_mlp = config.d_embed
+            config.d_attn_covariate = config.d_embed
+            
+            self.attn_covariate = CovariateAttention(config)
+            # self.mlp_covariate = MLP(config)
+            
+            self.ln_covariate_attn = nn.LayerNorm(config.d_component)
+            # self.ln_covariate_mlp = nn.LayerNorm(config.d_component)
+            
+        elif layer_index == self.config.n_blocks - 1:
+            
+            config.d_mlp = config.d_embed
+            config.d_attn_icl = config.d_embed
+            
+            self.attn_icl = ICLAttention(config)
+            self.mlp_icl = MLP(config)
+            
+            self.ln_icl_attn = nn.LayerNorm(config.d_component)
+            self.ln_icl_mlp = nn.LayerNorm(config.d_component)
+
+            self.ln_covariate_attn = nn.LayerNorm(config.d_component)
+
+        else:
+            total_heads = config.n_heads_icl + config.n_heads_covariate
+            d_attn_per_head = config.d_embed // total_heads
+            
+            config.d_attn_covariate = d_attn_per_head * config.n_heads_covariate
+            config.d_attn_icl = d_attn_per_head * config.n_heads_icl
+            
+            # Either share the MLP layer or learn 2 smaller MLPs
+            if config.share_mlp:
+                config.d_mlp = config.d_embed
+                self.mlp_covariate = self.mlp_icl = MLP(config)
+            else:
+                config.d_mlp = config.d_embed // 2
+                self.mlp_covariate = MLP(config)
+                self.mlp_icl = MLP(config)
+        
+            if self.layer_index < self.config.n_blocks - 1:
+                self.attn_covariate = CovariateAttention(config)
+            
+            self.attn_icl = ICLAttention(config)
+            
+            self.ln_covariate_mlp = nn.LayerNorm(config.d_component)
+            self.ln_icl_mlp = nn.LayerNorm(config.d_component)
+            
+            self.ln_covariate_attn = nn.LayerNorm(config.d_component)
+            self.ln_icl_attn = nn.LayerNorm(config.d_component)
+        
+    def forward(self, covariates, targets, functional_update):
+        
+        if self.layer_index == 0:
+
+            q = k = v = self.ln_covariate_attn(covariates)
+            covariates = covariates + self.attn_covariate(q, k, v)
+
+        elif self.layer_index == self.config.n_blocks - 1:
+            
+            q = k = self.ln_covariate_attn(covariates)
+            v = targets + self.mlp_icl(self.ln_icl_mlp(functional_update))
+
+            functional_update = functional_update + self.attn_icl(q, k, v)
+
+        if self.config.start_with_mlp or self.layer_index != 0:
+            covariates = covariates + self.mlp_icl(self.ln_covariate_mlp(covariates))
+
+            q = k = self.ln_icl_attn(covariates)
+
+            if self.config.update_targets:
+                targets = targets + self.mlp_icl(self.ln_icl_mlp(functional_update))
+                v = targets
+            else:
+                v = targets + self.mlp_icl(self.ln_icl_mlp(functional_update))
+        else:
+            q = k = covariates
+            v = targets
+        
+        functional_update = functional_update + self.attn_icl(q, k, v)
+        
+        if self.layer_index < self.config.n_blocks - 1:
+            v = covariates
+            covariates = covariates + self.attn_covariate(q, k, v)
+            
+        return covariates, targets, functional_update
