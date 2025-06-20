@@ -106,7 +106,7 @@ class Config:
         if self.model_type == "transformer":
             name += f"_{self.n_heads}H"
         
-        if self.model_type == "icl":
+        if self.model_type == "icl" or self.model_type == "icl2":
           
             name += f"_{self.n_heads_covariate}HC_{self.n_heads_icl}HICL_{self.d_component}COMP"
             
