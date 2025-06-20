@@ -11,6 +11,7 @@ class ICL(nn.Module):
         self.embedding = nn.Embedding(config.vocab_size, config.d_component)
         
         if config.end_with_mlp:
+            config.d_mlp = config.d_embed
             self.end_mlp = MLP(config)
         
         self.icl_blocks = nn.ModuleList([ICLBlock(config, i) for i in range(config.n_blocks)])
