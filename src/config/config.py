@@ -125,7 +125,7 @@ class Config:
             if self.use_W_v:
                 name += f"_useWV"
 
-            name += f"_withSKIP"
+            # name += f"_withSKIP"
         
         if self.dataset_name is not None:
             name += f"_ds={self.dataset_name}"
