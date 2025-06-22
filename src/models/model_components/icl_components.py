@@ -249,7 +249,7 @@ class ICL2Block(nn.Module):
         elif self.layer_index == self.config.n_blocks - 1:
             
             q = k = self.ln_covariate_attn(covariates)
-            v = targets + self.mlp_icl(self.ln_icl_mlp(functional_update))
+            v = targets +  (functional_update + self.mlp_icl(self.ln_icl_mlp(functional_update)))
 
             functional_update = functional_update + self.attn_icl(q, k, v)
 
@@ -259,10 +259,10 @@ class ICL2Block(nn.Module):
             q = k = self.ln_icl_attn(covariates)
 
             if self.config.update_targets:
-                targets = targets + self.mlp_icl(self.ln_icl_mlp(functional_update))
+                targets = targets + (functional_update + self.mlp_icl(self.ln_icl_mlp(functional_update)))
                 v = targets
             else:
-                v = targets + self.mlp_icl(self.ln_icl_mlp(functional_update))
+                v = targets +  (functional_update + self.mlp_icl(self.ln_icl_mlp(functional_update)))
         else:
             q = k = covariates
             v = targets
