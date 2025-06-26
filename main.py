@@ -4,7 +4,7 @@ from src.config import Config
 from src.models import Transformer, ICL
 from src.data import TinyStoriesDataset, WikiTextDataset, Tokenizer, GoodWikiDataset
 
-from src.util import train_model
+from src.util import train_model, eval_generation
 
 def get_args():
     
@@ -32,6 +32,13 @@ def get_args():
     parser.add_argument("--max_epochs", type=int, default=10, help="Maximum number of training epochs.")
     parser.add_argument("--val_check_interval", type=float, default=0.2, help="Interval (percent) between validation checks.")    
     
+    # Generation
+    parser.add_argument("--checkpoint", type=str, default="best", help="Checkpoint to use for generation: 'last', 'best', or 'epoch_x'.")
+    parser.add_argument("--num_samples", type=int, default=10, help="Number of test samples to generate from.")
+    parser.add_argument("--max_length", type=int, default=128, help="Maximum number of tokens to generate.")
+    parser.add_argument("--temperature", type=float, default=1.0, help="Sampling temperature.")
+    parser.add_argument("--p_value", type=float, default=0.9, help="Nucleus sampling p-value.")
+        
     args = parser.parse_args()
         
     return args
@@ -71,9 +78,9 @@ def main():
     if args.mode == "eval":
         raise NotImplementedError("Evaluation mode is not yet implemented.")
 
-    # Generation
     if args.mode == "generate":
-        raise NotImplementedError("Evaluation mode is not yet implemented.")
+        print(f"Generating sequences with model [{model.config.get_name()}]")
+        eval_generation(model, args, splits, tokenizer)
     
 if __name__ == "__main__":
     main()
