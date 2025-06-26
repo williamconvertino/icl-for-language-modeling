@@ -8,7 +8,7 @@ class ICL(nn.Module):
         
         self.config = config
         
-        self.embedding = nn.Embedding(config.vocab_size, config.d_embedent)
+        self.embedding = nn.Embedding(config.vocab_size, config.d_embed)
         
         if config.block_order is None:
             config.block_order = ['t', 'i'] * config.n_blocks // 2
@@ -29,9 +29,9 @@ class ICL(nn.Module):
         if config.use_output_mlp:
             self.output_mlp = MLP(config)
         
-        self.ln_out = nn.LayerNorm(config.d_embedent)
+        self.ln_out = nn.LayerNorm(config.d_embed)
         
-        self.lm_head = nn.Linear(config.d_embedent, config.vocab_size, bias=False)
+        self.lm_head = nn.Linear(config.d_embed, config.vocab_size, bias=False)
         self.lm_head.weight = self.embedding.weight
         
         self.apply(initialize_weights)
