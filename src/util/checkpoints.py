@@ -21,7 +21,7 @@ def resolve_checkpoint_path(model_name, checkpoint_name):
         except (IndexError, ValueError):
             raise ValueError(f"Invalid format for epoch checkpoint: {checkpoint_name}. Expected format: epoch_<int>")
 
-        pattern = f"epoch-{epoch_num:02d}"
+        pattern = f"epoch_epoch-{epoch_num:02d}"
         candidates = sorted(
             f for f in os.listdir(checkpoint_dir)
             if f.startswith(pattern) and f.endswith(".ckpt")
