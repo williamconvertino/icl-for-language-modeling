@@ -13,8 +13,7 @@ def get_args():
     # Model Info
     parser.add_argument("--override", type=str, default=None, help="Override config options, e.g., 'n_blocks=5,n_heads=4'.")
     parser.add_argument("--preset", type=str, default="transformer_small", help="Model preset to use.")
-    parser.add_argument("--checkpoint", type=str, default=None, help="Checkpoint to load: 'last', 'best', or 'epoch_x'.")
-
+    
     # Dataset
     parser.add_argument("--dataset", type=str, default="tinystories", choices=["tinystories", "wikitext", "goodwiki"], help="Dataset to use for training.")
     parser.add_argument("--batch_size", type=int, default=32, help="Training batch size per GPU.")
