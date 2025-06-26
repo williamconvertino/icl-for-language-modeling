@@ -49,6 +49,7 @@ def eval_generation(model, args, splits, tokenizer):
         model=model,
         tokenizer=tokenizer,
         args=args,
+        weights_only=False
     ).to(device).eval()
 
     output_dir = os.path.join(args.output_dir, "generations", args.dataset)
