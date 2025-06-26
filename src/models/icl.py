@@ -11,7 +11,7 @@ class ICL(nn.Module):
         self.embedding = nn.Embedding(config.vocab_size, config.d_embed)
         
         if config.block_order is None:
-            config.block_order = ['t', 'i'] * config.n_blocks // 2
+            config.block_order = ['t', 'i'] * (config.n_blocks // 2)
             if config.n_blocks % 2 != 0:
                 config.block_order = ['t'] + config.block_order
         
