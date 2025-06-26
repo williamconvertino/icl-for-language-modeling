@@ -48,14 +48,14 @@ class DiskDataset(torch.utils.data.Dataset):
         return torch.tensor(seq).long()
 
     @staticmethod
-    def preprocess(examples, tokenizer, separate_lines=True):
-        texts = [DiskDataset.re_replace.sub(lambda m: DiskDataset.replacements[m.group()], text) for text in examples["text"]]
+    def preprocess(examples, tokenizer, column, separate_lines=True):
+        texts = [DiskDataset.re_replace.sub(lambda m: DiskDataset.replacements[m.group()], text) for text in examples[column]]
         examples["input_ids"] = tokenizer.encode(texts, eos=separate_lines, bos=separate_lines)
         return examples
 
     @staticmethod
-    def generate_data_file(dataset, file_path, tokenizer, separate_lines=True):
-        dataset = dataset.map(lambda x: DiskDataset.preprocess(x, tokenizer, separate_lines), batched=True, remove_columns=["text"])
+    def generate_data_file(dataset, file_path, tokenizer, separate_lines=True, column="text"):
+        dataset = dataset.map(lambda x: DiskDataset.preprocess(x, tokenizer, column, separate_lines), batched=True, remove_columns=[column])
         file_size = sum(len(example) for example in dataset["input_ids"])
 
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
