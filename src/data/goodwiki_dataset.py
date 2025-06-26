@@ -18,7 +18,7 @@ class GoodWikiDataset(DiskDataset):
             
             val_data = dataset.select(range(2_000)) # 2k val
             test_data = dataset.select(range(2_000, 4_000)) # 2k test
-            train_data = dataset.select(range(4_000, len(train_data))) # 40k train     
+            train_data = dataset.select(range(4_000, len(dataset))) # 40k train     
 
             DiskDataset.generate_data_file(train_data, f"{DATASET_DIR}/goodwiki/train.bin", tokenizer)
             DiskDataset.generate_data_file(test_data, f"{DATASET_DIR}/goodwiki/test.bin", tokenizer)
