@@ -11,18 +11,18 @@ class ICLAttention(nn.Module):
         
         self.config = config
         
-        self.W_q = nn.Linear(config.hidden_dim, config.hidden_dim, bias=False)
-        self.W_k = nn.Linear(config.hidden_dim, config.hidden_dim, bias=False)
+        self.W_q = nn.Linear(config.d_embed, config.d_embed, bias=False)
+        self.W_k = nn.Linear(config.d_embed, config.d_embed, bias=False)
         
         if config.icl_use_wv:
-            self.W_v = nn.Linear(config.hidden_dim, config.hidden_dim, bias=False)
-            self.W_o = nn.Linear(config.hidden_dim, config.hidden_dim, bias=False)
+            self.W_v = nn.Linear(config.d_embed, config.d_embed, bias=False)
+            self.W_o = nn.Linear(config.d_embed, config.d_embed, bias=False)
         else:
-            self.W_o = nn.Linear(config.n_heads * config.hidden_dim, config.hidden_dim, bias=False)
+            self.W_o = nn.Linear(config.n_heads * config.d_embed, config.d_embed, bias=False)
         
-        self.attn_scale = 1 / math.sqrt(config.hidden_dim)
+        self.attn_scale = 1 / math.sqrt(config.d_embed)
         
-        self.rotary_embeddings = RotaryPositionalEmbeddings(config.hidden_dim // config.n_heads, max_seq_len=config.max_seq_len + 1)
+        self.rotary_embeddings = RotaryPositionalEmbeddings(config.d_embed // config.n_heads, max_seq_len=config.max_seq_len + 1)
         
         self.drop_attn = nn.Dropout(0.1)
         self.drop_resid = nn.Dropout(0.1)
@@ -38,13 +38,13 @@ class ICLAttention(nn.Module):
         B, S, E = q.shape
         device = q.device
         
-        q = self.W_q(q).view(B, S, self.config.n_heads, self.config.hidden_dim // self.config.n_heads).transpose(1, 2)
-        k = self.W_k(k).view(B, S, self.config.n_heads, self.config.hidden_dim // self.config.n_heads).transpose(1, 2)
+        q = self.W_q(q).view(B, S, self.config.n_heads, self.config.d_embed // self.config.n_heads).transpose(1, 2)
+        k = self.W_k(k).view(B, S, self.config.n_heads, self.config.d_embed // self.config.n_heads).transpose(1, 2)
         
         if self.config.icl_use_wv:
-            v = self.W_v(v).view(B, S, self.config.n_heads, self.config.hidden_dim // self.config.n_heads).transpose(1, 2)
+            v = self.W_v(v).view(B, S, self.config.n_heads, self.config.d_embed // self.config.n_heads).transpose(1, 2)
         else:
-            v = v.unsqueeze(2).expand(B, S, self.config.n_heads, self.config.hidden_dim).transpose(1, 2)
+            v = v.unsqueeze(2).expand(B, S, self.config.n_heads, self.config.d_embed).transpose(1, 2)
         
         q = self.rotary_embeddings(q)
         k = self.rotary_embeddings(k)
@@ -65,9 +65,9 @@ class ICLAttention(nn.Module):
         attn_output = attn_output.transpose(1, 2).contiguous()
         
         if self.config.icl_use_wv:
-            attn_output = attn_output.view(B, S, self.config.hidden_dim)
+            attn_output = attn_output.view(B, S, self.config.d_embed)
         else:
-            attn_output = attn_output.view(B, S, self.config.n_heads * self.config.hidden_dim)
+            attn_output = attn_output.view(B, S, self.config.n_heads * self.config.d_embed)
             
         attn_output = self.W_o(attn_output)
         attn_output = self.drop_resid(attn_output)
@@ -83,14 +83,14 @@ class ICLBlock(nn.Module):
         self.mlp = MLP(config)
         
         if config.icl_use_ln_mlp:
-            self.ln_mlp = nn.LayerNorm(config.hidden_dim)
+            self.ln_mlp = nn.LayerNorm(config.d_embed)
         
         self.attention = ICLAttention(config)
         
         if config.icl_use_ln_v:
-            self.ln_v = nn.LayerNorm(config.hidden_dim)
+            self.ln_v = nn.LayerNorm(config.d_embed)
         if config.icl_use_ln_qk:
-            self.ln_qk = nn.LayerNorm(config.hidden_dim)
+            self.ln_qk = nn.LayerNorm(config.d_embed)
         
     def _calculate_ex(self, functional_update):
         
