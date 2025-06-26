@@ -1,8 +1,8 @@
 from argparse import ArgumentParser
 
 from src.config import Config
-from src.models import Transformer, ICL, ICL2
-from src.data import TinyStoriesDataset, WikiTextDataset, Tokenizer
+from src.models import Transformer, ICL
+from src.data import TinyStoriesDataset, WikiTextDataset, Tokenizer, GoodWikiDataset
 
 from src.util import train_model
 
@@ -16,7 +16,7 @@ def get_args():
     parser.add_argument("--checkpoint", type=str, default=None, help="Checkpoint to load: 'last', 'best', or 'epoch_x'.")
 
     # Dataset
-    parser.add_argument("--dataset", type=str, default="tinystories", choices=["tinystories", "wikitext"], help="Dataset to use for training.")
+    parser.add_argument("--dataset", type=str, default="tinystories", choices=["tinystories", "wikitext", "goodwiki"], help="Dataset to use for training.")
     parser.add_argument("--batch_size", type=int, default=32, help="Training batch size per GPU.")
     parser.add_argument("--num_workers", type=int, default=16, help="Number of workers to use for dataset loading.")
 
@@ -50,8 +50,6 @@ def main():
         model = Transformer(config)
     elif config.model_type == "icl":
         model = ICL(config)
-    elif config.model_type == "icl2":
-        model = ICL2(config)
     else:
         raise ValueError(f"Invalid model type: '{config.model_type}'.")
 
@@ -59,6 +57,8 @@ def main():
         splits = TinyStoriesDataset.get_splits(tokenizer, config.max_seq_len)
     elif args.dataset == "wikitext":
         splits = WikiTextDataset.get_splits(tokenizer, config.max_seq_len)
+    elif args.dataset == "goodwiki":
+        splits = GoodWikiDataset.get_splits(tokenizer, config.max_seq_len)
     else:
         raise ValueError(f"Dataset '{config.dataset_name}' is not recognized.")
     
