@@ -1,3 +1,0 @@
-model_type: transformer
-n_blocks: 16
-d_embed: 256
