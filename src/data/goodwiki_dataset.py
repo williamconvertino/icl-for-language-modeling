@@ -16,9 +16,9 @@ class GoodWikiDataset(DiskDataset):
             
             dataset = load_dataset(HUGGINGFACE_PATH, cache_dir=f"{DATASET_DIR}/raw", split="train")
             
-            val_data = train_data.select(range(2_000)) # 2k val
-            test_data = train_data.select(range(2_000, 4_000)) # 2k test
-            train_data = train_data.select(range(4_000, len(train_data))) # 40k train     
+            val_data = dataset.select(range(2_000)) # 2k val
+            test_data = dataset.select(range(2_000, 4_000)) # 2k test
+            train_data = dataset.select(range(4_000, len(train_data))) # 40k train     
 
             DiskDataset.generate_data_file(train_data, f"{DATASET_DIR}/goodwiki/train.bin", tokenizer)
             DiskDataset.generate_data_file(test_data, f"{DATASET_DIR}/goodwiki/test.bin", tokenizer)
