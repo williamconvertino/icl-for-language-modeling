@@ -1,8 +1,9 @@
-import torch
 import math
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torchtune.modules import RotaryPositionalEmbeddings
+from .transformer_components import MLP
 
 class ICLAttention(nn.Module):
     def __init__(self, config):
@@ -10,38 +11,48 @@ class ICLAttention(nn.Module):
         
         self.config = config
         
-        self.W_q = nn.Linear(config.d_component, config.d_attn_icl, bias=False)
-        self.W_k = nn.Linear(config.d_component, config.d_attn_icl, bias=False)
+        self.W_q = nn.Linear(config.hidden_dim, config.hidden_dim, bias=False)
+        self.W_k = nn.Linear(config.hidden_dim, config.hidden_dim, bias=False)
         
-        if config.use_W_v:
-            self.W_v = nn.Linear(config.d_component, config.d_attn_icl, bias=False)
-            self.W_o = nn.Linear(config.d_attn_icl, config.d_component, bias=False)
+        if config.icl_use_wv:
+            self.W_v = nn.Linear(config.hidden_dim, config.hidden_dim, bias=False)
+            self.W_o = nn.Linear(config.hidden_dim, config.hidden_dim, bias=False)
         else:
-            self.W_o = nn.Linear(config.n_heads_icl * config.d_component, config.d_component, bias=False)
+            self.W_o = nn.Linear(config.n_heads * config.hidden_dim, config.hidden_dim, bias=False)
         
-        self.attn_scale = 1 / math.sqrt(config.d_attn_icl)
+        self.attn_scale = 1 / math.sqrt(config.hidden_dim)
         
-        self.rotary_embeddings = RotaryPositionalEmbeddings(config.d_attn_icl // config.n_heads_icl)
+        self.rotary_embeddings = RotaryPositionalEmbeddings(config.hidden_dim // config.n_heads, max_seq_len=config.max_seq_len + 1)
         
         self.drop_attn = nn.Dropout(0.1)
         self.drop_resid = nn.Dropout(0.1)
         
+        # Mask diagonal (ignoring the first to prevent softmax issues) 
+        # cached_training_mask = torch.triu(torch.ones(1, 1, config.max_seq_len + 1, config.max_seq_len + 1), diagonal=0).bool()
+        # cached_training_mask[0, 0] = False
+        
+        # self.register_buffer("cached_training_mask", cached_training_mask, persistent=False)
+
     def forward(self, q, k, v):
         
         B, S, E = q.shape
+        device = q.device
         
-        q = self.W_q(q).view(B, S, self.config.n_heads_icl, self.config.d_attn_icl // self.config.n_heads_icl).transpose(1, 2)
-        k = self.W_k(k).view(B, S, self.config.n_heads_icl, self.config.d_attn_icl // self.config.n_heads_icl).transpose(1, 2)
+        q = self.W_q(q).view(B, S, self.config.n_heads, self.config.hidden_dim // self.config.n_heads).transpose(1, 2)
+        k = self.W_k(k).view(B, S, self.config.n_heads, self.config.hidden_dim // self.config.n_heads).transpose(1, 2)
         
-        if self.config.use_W_v:
-            v = self.W_v(v).view(B, S, self.config.n_heads_icl, self.config.d_attn_icl // self.config.n_heads_icl).transpose(1, 2)
+        if self.config.icl_use_wv:
+            v = self.W_v(v).view(B, S, self.config.n_heads, self.config.hidden_dim // self.config.n_heads).transpose(1, 2)
         else:
-            v = v.unsqueeze(2).expand(B, S, self.config.n_heads_icl, self.config.d_component).transpose(1, 2)
+            v = v.unsqueeze(2).expand(B, S, self.config.n_heads, self.config.hidden_dim).transpose(1, 2)
         
         q = self.rotary_embeddings(q)
         k = self.rotary_embeddings(k)
         
-        causal_mask = torch.triu(torch.ones(S, S), diagonal=0).bool().to(q.device)
+        # if S == self.config.max_seq_len + 1:
+        #     causal_mask = self.cached_training_mask
+        # else:
+        causal_mask = torch.triu(torch.ones(1, 1, S, S), diagonal=0).bool().to(device)
         causal_mask[0, 0] = False
         
         attn_scores = torch.matmul(q, k.transpose(-2, -1)) * self.attn_scale
@@ -53,224 +64,57 @@ class ICLAttention(nn.Module):
         attn_output = torch.matmul(attn_probs, v)
         attn_output = attn_output.transpose(1, 2).contiguous()
         
-        if self.config.use_W_v:
-            attn_output = self.W_o(attn_output.view(B, S, self.config.d_attn_icl))
+        if self.config.icl_use_wv:
+            attn_output = attn_output.view(B, S, self.config.hidden_dim)
         else:
-            attn_output = self.W_o(attn_output.view(B, S, self.config.n_heads_icl * self.config.d_component))
-        
-        attn_output = self.drop_resid(attn_output)
-        
-        return attn_output
-    
-class CovariateAttention(nn.Module):
-    def __init__(self, config):
-        super().__init__()
-        
-        self.config = config
-        
-        self.W_q = nn.Linear(config.d_component, config.d_attn_covariate, bias=False)
-        self.W_k = nn.Linear(config.d_component, config.d_attn_covariate, bias=False)
-        self.W_v = nn.Linear(config.d_component, config.d_attn_covariate, bias=False)
-        self.W_o = nn.Linear(config.d_attn_covariate, config.d_component, bias=False)
-        
-        self.attn_scale = 1 / math.sqrt(config.d_attn_covariate)
-        
-        self.rotary_embeddings = RotaryPositionalEmbeddings(config.d_attn_covariate // config.n_heads_covariate)
-        
-        self.drop_attn = nn.Dropout(0.1)
-        self.drop_resid = nn.Dropout(0.1)
-        
-    def forward(self, q, k, v):
-        
-        k = v = q
-        
-        B, S, E = q.shape
-        
-        q = self.W_q(q).view(B, S, self.config.n_heads_covariate, self.config.d_attn_covariate // self.config.n_heads_covariate).transpose(1, 2)
-        k = self.W_k(k).view(B, S, self.config.n_heads_covariate, self.config.d_attn_covariate // self.config.n_heads_covariate).transpose(1, 2)
-        v = self.W_v(v).view(B, S, self.config.n_heads_covariate, self.config.d_attn_covariate // self.config.n_heads_covariate).transpose(1, 2)
-        
-        q = self.rotary_embeddings(q)
-        k = self.rotary_embeddings(k)
-        
-        causal_mask = torch.triu(torch.ones(S, S), diagonal=1).bool().to(q.device)
-        
-        attn_scores = torch.matmul(q, k.transpose(-2, -1)) * self.attn_scale
-        attn_scores = attn_scores.masked_fill(causal_mask, float('-inf'))
-        
-        attn_probs = F.softmax(attn_scores, dim=-1)
-        attn_probs = self.drop_attn(attn_probs)
-        
-        attn_output = torch.matmul(attn_probs, v)
-        attn_output = attn_output.transpose(1, 2).contiguous().view(B, S, self.config.d_attn_covariate)
+            attn_output = attn_output.view(B, S, self.config.n_heads * self.config.hidden_dim)
+            
         attn_output = self.W_o(attn_output)
         attn_output = self.drop_resid(attn_output)
         
         return attn_output
-    
-class MLP(nn.Module):
+
+class ICLBlock(nn.Module):
     def __init__(self, config):
         super().__init__()
-
-        self.fc_1 = nn.Linear(config.d_component, 4 * config.d_mlp)
-        self.fc_2 = nn.Linear(4 * config.d_mlp, config.d_component)
-        
-        self.activation = nn.GELU()    
-        self.drop = nn.Dropout(0.1)
-
-    def forward(self, x):
-        x = self.fc_1(x)
-        x = self.activation(x)
-        x = self.drop(x)
-        x = self.fc_2(x)
-        return x
-    
-class ICLBlock(nn.Module):
-    def __init__(self, config, layer_index):
-        super().__init__()
         
         self.config = config
-        self.layer_index = layer_index
         
-        total_heads = config.n_heads_icl + config.n_heads_covariate
-        d_attn_per_head = config.d_embed // total_heads
+        self.mlp = MLP(config)
         
-        config.d_attn_covariate = d_attn_per_head * config.n_heads_covariate
-        config.d_attn_icl = d_attn_per_head * config.n_heads_icl
+        if config.icl_use_ln_mlp:
+            self.ln_mlp = nn.LayerNorm(config.hidden_dim)
         
-        # Either share the MLP layer or learn 2 smaller MLPs
-        if config.share_mlp:
-            config.d_mlp = config.d_embed
-            self.mlp_covariate = self.mlp_icl = MLP(config)
+        self.attention = ICLAttention(config)
+        
+        if config.icl_use_ln_v:
+            self.ln_v = nn.LayerNorm(config.hidden_dim)
+        if config.icl_use_ln_qk:
+            self.ln_qk = nn.LayerNorm(config.hidden_dim)
+        
+    def _calculate_ex(self, functional_update):
+        
+        if self.config.icl_use_ln_mlp:
+            ex_term = self.mlp(self.ln_mlp(functional_update))
         else:
-            config.d_mlp = config.d_embed // 2
-            self.mlp_covariate = MLP(config)
-            self.mlp_icl = MLP(config)
+            ex_term = self.mlp(functional_update)
         
-        if self.layer_index < self.config.n_blocks - 1:
-            self.attn_covariate = CovariateAttention(config)
+        if self.config.icl_use_skip_mlp:
+            ex_term += functional_update
         
-        self.attn_icl = ICLAttention(config)
-        
-        self.ln_covariate_mlp = nn.LayerNorm(config.d_component)
-        self.ln_icl_mlp = nn.LayerNorm(config.d_component)
-        
-        self.ln_covariate_attn = nn.LayerNorm(config.d_component)
-        self.ln_icl_attn = nn.LayerNorm(config.d_component)
+        return ex_term
         
     def forward(self, covariates, targets, functional_update):
+        v = targets - self._calculate_ex(functional_update)
         
-        if self.config.start_with_mlp or self.layer_index != 0:
-            covariates = covariates + self.mlp_icl(self.ln_covariate_mlp(covariates))
-
-            q = k = self.ln_icl_attn(covariates)
-
-            if self.config.update_targets:
-                targets = targets + self.mlp_icl(self.ln_icl_mlp(functional_update))
-                v = targets
-            else:
-                v = targets + self.mlp_icl(self.ln_icl_mlp(functional_update))
+        if self.config.icl_use_ln_v:
+            v = self.ln_v(v)
+        
+        if self.config.icl_use_ln_qk:
+            q = k = self.ln_qk(covariates)
         else:
             q = k = covariates
-            v = targets
+            
+        functional_update = functional_update + self.attention(q, k, v)
         
-        functional_update = functional_update + self.attn_icl(q, k, v)
-        
-        if self.layer_index < self.config.n_blocks - 1:
-            v = covariates
-            covariates = covariates + self.attn_covariate(q, k, v)
-            
-        return covariates, targets, functional_update
-    
-class ICL2Block(nn.Module):
-    def __init__(self, config, layer_index):
-        super().__init__()
-        
-        self.config = config
-        self.layer_index = layer_index
-        
-        if layer_index == 0:
-            # config.d_mlp = config.d_embed
-            config.d_attn_covariate = config.d_embed
-            
-            self.attn_covariate = CovariateAttention(config)
-            # self.mlp_covariate = MLP(config)
-            
-            self.ln_covariate_attn = nn.LayerNorm(config.d_component)
-            # self.ln_covariate_mlp = nn.LayerNorm(config.d_component)
-            
-        elif layer_index == self.config.n_blocks - 1:
-            
-            config.d_mlp = config.d_embed
-            config.d_attn_icl = config.d_embed
-            
-            self.attn_icl = ICLAttention(config)
-            self.mlp_icl = MLP(config)
-            
-            self.ln_icl_attn = nn.LayerNorm(config.d_component)
-            self.ln_icl_mlp = nn.LayerNorm(config.d_component)
-
-            self.ln_covariate_attn = nn.LayerNorm(config.d_component)
-
-        else:
-            total_heads = config.n_heads_icl + config.n_heads_covariate
-            d_attn_per_head = config.d_embed // total_heads
-            
-            config.d_attn_covariate = d_attn_per_head * config.n_heads_covariate
-            config.d_attn_icl = d_attn_per_head * config.n_heads_icl
-            
-            # Either share the MLP layer or learn 2 smaller MLPs
-            if config.share_mlp:
-                config.d_mlp = config.d_embed
-                self.mlp_covariate = self.mlp_icl = MLP(config)
-            else:
-                config.d_mlp = config.d_embed // 2
-                self.mlp_covariate = MLP(config)
-                self.mlp_icl = MLP(config)
-        
-            if self.layer_index < self.config.n_blocks - 1:
-                self.attn_covariate = CovariateAttention(config)
-            
-            self.attn_icl = ICLAttention(config)
-            
-            self.ln_covariate_mlp = nn.LayerNorm(config.d_component)
-            self.ln_icl_mlp = nn.LayerNorm(config.d_component)
-            
-            self.ln_covariate_attn = nn.LayerNorm(config.d_component)
-            self.ln_icl_attn = nn.LayerNorm(config.d_component)
-        
-    def forward(self, covariates, targets, functional_update):
-        
-        if self.layer_index == 0:
-
-            q = k = v = self.ln_covariate_attn(covariates)
-            covariates = covariates + self.attn_covariate(q, k, v)
-
-        elif self.layer_index == self.config.n_blocks - 1:
-            
-            q = k = self.ln_covariate_attn(covariates)
-            v = targets + self.mlp_icl(self.ln_icl_mlp(functional_update))
-
-            functional_update = functional_update + self.attn_icl(q, k, v)
-
-        if self.config.start_with_mlp or self.layer_index != 0:
-            covariates = covariates + self.mlp_icl(self.ln_covariate_mlp(covariates))
-
-            q = k = self.ln_icl_attn(covariates)
-
-            if self.config.update_targets:
-                targets = targets + self.mlp_icl(self.ln_icl_mlp(functional_update))
-                v = targets
-            else:
-                v = targets + self.mlp_icl(self.ln_icl_mlp(functional_update))
-        else:
-            q = k = covariates
-            v = targets
-        
-        functional_update = functional_update + self.attn_icl(q, k, v)
-        
-        if self.layer_index < self.config.n_blocks - 1:
-            v = covariates
-            covariates = covariates + self.attn_covariate(q, k, v)
-            
         return covariates, targets, functional_update

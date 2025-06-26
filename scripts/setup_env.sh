@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ENV_NAME="icl"
+ENV_NAME="icl-lm"
 ENV_FILE="environment.yml"
 
 cd ".."

@@ -16,7 +16,7 @@
 
 set -e
 source ~/.bashrc
-conda activate icl
+conda activate icl-lm
 
 get_free_port() {
   while : ; do

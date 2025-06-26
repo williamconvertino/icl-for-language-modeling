@@ -14,17 +14,22 @@ class Config:
     n_blocks = 8
     
     # ICL Specific
-    d_component = 512 # Allows us to edit the dimension of the vector components without changing the hidden dimensions of our model
-    share_mlp = False
-    start_with_mlp = True
-    end_with_mlp = False
     
-    n_heads_icl = 4 # Overrides the default n_heads
-    n_heads_covariate = 4
+    block_order = None
     
-    update_targets = False
-    use_W_v = True
+    icl_use_wv = False
+    icl_use_ln_mlp = False
+    icl_use_skip_mlp = False
+    icl_use_ln_v = False
+    icl_use_ln_qk = False
+
+    share_covariate_attn = False
+    share_covariate_mlp = False
+    share_icl_attn = False
+    share_icl_mlp = False
     
+    use_output_mlp = False
+        
     # Training Details
     dataset_name = None
     
@@ -100,34 +105,43 @@ class Config:
         return new_config
 
     def get_name(self):
-        
-        name = f"{self.model_type}_{self.d_embed}D_{self.max_seq_len}S_{self.n_blocks}L"
-        
-        if self.model_type == "transformer":
-            name += f"_{self.n_heads}H"
-        
-        if self.model_type == "icl" or self.model_type == "icl2":
-          
-            name += f"_{self.n_heads_covariate}HC_{self.n_heads_icl}HICL_{self.d_component}COMP"
-            
-            if self.share_mlp:
-                name += f"_shareMLP"
-            
-            if self.start_with_mlp:
-                name += f"_mlpStart"
-            
-            if self.end_with_mlp:
-                name += f"_mlpEnd"
-               
-            if self.update_targets: 
-                name += f"_updateTargets"
-            
-            if self.use_W_v:
-                name += f"_useWV"
+        parts = [f"{self.model_type}", f"{self.d_embed}D", f"{self.max_seq_len}S", f"{self.n_blocks}L", f"{self.n_heads}H"]
 
-            # name += f"_withSKIP"
-        
+        if self.model_type.startswith("icl"):
+            parts.append("ICL")
+
+            if getattr(self, "start_with_mlp", False):
+                parts.append("mlpStart")
+            if getattr(self, "end_with_mlp", False):
+                parts.append("mlpEnd")
+            if getattr(self, "update_targets", False):
+                parts.append("updateTargets")
+            if getattr(self, "icl_use_wv", False):
+                parts.append("useWV")
+
+        # Optional shared component flags
+        if self.share_covariate_attn:
+            parts.append("shareCovAttn")
+        if self.share_covariate_mlp:
+            parts.append("shareCovMLP")
+        if self.share_icl_attn:
+            parts.append("shareICLAttn")
+        if self.share_icl_mlp:
+            parts.append("shareICLMLP")
+        if self.use_output_mlp:
+            parts.append("outputMLP")
+
+        # Normalization flags
+        if self.icl_use_ln_mlp:
+            parts.append("lnMLP")
+        if self.icl_use_ln_v:
+            parts.append("lnV")
+        if self.icl_use_ln_qk:
+            parts.append("lnQK")
+        if self.icl_use_skip_mlp:
+            parts.append("skipMLP")
+
         if self.dataset_name is not None:
-            name += f"_ds={self.dataset_name}"
-        
-        return name
+            parts.append(f"ds={self.dataset_name}")
+
+        return "_".join(parts)
