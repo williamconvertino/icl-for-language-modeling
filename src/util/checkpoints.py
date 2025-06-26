@@ -1,7 +1,7 @@
 import os
 
 def resolve_checkpoint_path(model_name, checkpoint_name):
-    checkpoint_dir = f"../checkpoints/{model_name}"
+    checkpoint_dir = os.path.join("outputs", "checkpoints", model_name)
 
     if checkpoint_name == "last":
         ckpt_path = os.path.join(checkpoint_dir, "last.ckpt")
