@@ -4,6 +4,10 @@ import torch.nn.functional as F
 from tqdm import tqdm
 from .checkpoints import resolve_checkpoint_path
 from .lightning import LightningWrapper
+
+import argparse
+import torch.serialization
+torch.serialization.add_safe_globals([argparse.Namespace]) # Fix deprecation issues
     
 @torch.no_grad()
 def nucleus_sampling(logits, temperature=1.0, top_p=0.9):
