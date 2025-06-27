@@ -68,8 +68,8 @@ def eval_generation(model, args, splits, tokenizer):
             prompt_len = min(input_ids.shape[1] // 2, model.config.max_seq_len // 2)
             prompt = input_ids[:, :prompt_len]
 
-            pad_token_tensor = torch.full((prompt.size(0), 1), tokenizer.pad_token_id, dtype=torch.long, device=device)
-            prompt = torch.cat([pad_token_tensor, prompt], dim=1)
+            # pad_token_tensor = torch.full((prompt.size(0), 1), tokenizer.pad_token_id, dtype=torch.long, device=device)
+            # prompt = torch.cat([pad_token_tensor, prompt], dim=1)
 
             generated = sample_tokens(
                 lightning_model,

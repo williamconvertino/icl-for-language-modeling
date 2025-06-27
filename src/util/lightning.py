@@ -30,8 +30,8 @@ class LightningWrapper(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         x = batch[:, :-1]
         y = batch[:, 1:]
-        x[:, 0] = self.tokenizer.pad_token_id
-        y[:, 0] = self.tokenizer.pad_token_id # Necessary for faster ICL training (otherwise we need to append a global start token)
+        # x[:, 0] = self.tokenizer.pad_token_id
+        # y[:, 0] = self.tokenizer.pad_token_id # Necessary for faster ICL training (otherwise we need to append a global start token)
         
         logits = self(x)
         loss = self._compute_loss(logits, y)
@@ -42,8 +42,8 @@ class LightningWrapper(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         x = batch[:, :-1]
         y = batch[:, 1:]
-        x[:, 0] = self.tokenizer.pad_token_id
-        y[:, 0] = self.tokenizer.pad_token_id 
+        # x[:, 0] = self.tokenizer.pad_token_id
+        # y[:, 0] = self.tokenizer.pad_token_id 
         
         logits = self(x)
         loss = self._compute_loss(logits, y)
