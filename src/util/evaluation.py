@@ -37,7 +37,7 @@ def sample_tokens(model, input_ids, max_gen_len, eos_token_id, temperature=1.0, 
     return generated
 
 def load_model_from_checkpoint(model, checkpoint_path):
-    checkpoint = torch.load(checkpoint_path, map_location="cpu")
+    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
 
     # Remove "model." prefix if present
     state_dict = checkpoint["state_dict"]
